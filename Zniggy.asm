@@ -676,15 +676,29 @@ proc_move_player_out_walls:
 	ld (PLAYER_X),a
 proc_move_player_out_walls2:
 	pop bc
+	push bc
 	inc c
 	call proc_get_block_index
 	ld a,(hl)
 	cp 0
-	ret z
+	jr z, proc_move_player_out_walls3
 	ld a,(PLAYER_X)
 	and %11111000
 	dec a
 	ld (PLAYER_X),a
+proc_move_player_out_walls3:
+	pop bc
+	ld a,b
+	sub 18
+	ret c
+	ld b,a
+	call proc_get_block_index
+	ld a,(hl)
+	cp 0
+	ret z
+	ld a,(PLAYER_VEL)
+	ld a,0
+	ld (PLAYER_VEL),a
 ret
 ENDP
 
