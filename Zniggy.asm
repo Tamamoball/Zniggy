@@ -519,15 +519,15 @@ db 1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,1,1
 db 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
 db 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
 ;Monsters
-db 7,0
+db 6,2
 db 64, 70, DATA_BUG, DATA_BUG>>8, 1
 db 88, 70, DATA_BUG, DATA_BUG>>8, 1
 db 104, 70, DATA_BUG, DATA_BUG>>8, 1
 db 120, 70, DATA_BUG, DATA_BUG>>8, 1
 db 136, 70, DATA_BUG, DATA_BUG>>8, 1
 db 152, 70, DATA_BUG, DATA_BUG>>8, 1
-db 168, 70, DATA_BUG, DATA_BUG>>8, 1
-db 200, 70, DATA_ZIGGY_LEFT, DATA_ZIGGY_LEFT>>8, 1
+db 160, 103, DATA_ZIGGY_LEFT, DATA_ZIGGY_LEFT>>8, 1
+db 160, 95, DATA_ZIGGY_LEFT, DATA_ZIGGY_LEFT>>8, 1
 
 ROOM_1:
 db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -872,7 +872,7 @@ proc_check_transition2:
 proc_check_transition3:
 	ld a,(PLAYER_Y)
 	ld b,a
-	ld a,124
+	ld a,120
 	cp b
 	jr nc, proc_check_transition4
 	ld a, 8
@@ -918,9 +918,9 @@ proc_update_player_vel:
 	inc hl
 	ld a,(hl)
 	inc a
-	cp 6
+	cp 5
 	jr nz, proc_update_player_cap
-	ld a,5
+	ld a,4
 proc_update_player_cap:
 	push de
 	push bc
@@ -1064,19 +1064,52 @@ proc_update_walkers:
 	ld b,0
 	ld c,a
 	push ix
-	ld ix,MONSTER_POS
-	add ix,bc
+	ld ix,MONSTER_POS 
+	add ix,bc ; ix now contains the first address of walkers
+	ld a,(WALKER_COUNT)
+	cp 0
+	jr z,proc_update_walkers_loop_end
+	ld b,a
 proc_update_walkers_loop:
-	ld b,(ix)
-	inc b
+	push bc
 	ld a,(ix+4)
 	cp 0
-	jr z, proc_update_walkers_2
-	dec b
-	dec b
+	ld a,(ix)
+	jr nz, proc_update_walkers_2
+	inc a
+	ld (ix),a
+	add a,9
+	jr proc_update_walkers_3 
 proc_update_walkers_2:
-	ld (ix),b
+	dec a
+	ld (ix),a
+	dec a
+proc_update_walkers_3:
+	rra
+	rra
+	rra
+	and %00011111
+	ld c,a
+	ld a,(ix+1)
+	add a,9
+	ld b,a
+	call proc_get_block_index
+	ld a,(hl)
+	cp 0
+	jr z, proc_update_walkers_end
+	ld b,(ix+4)
+	ld a,1
+	sub b
+	ld (ix+4),a
+proc_update_walkers_end:
+	pop bc
+	ld de,MONSTER_SIZE
+	add ix,de
+	dec b
+	jr nz,proc_update_walkers_loop
+proc_update_walkers_loop_end:
 	
+
 	pop ix
 ret
 ENDP
@@ -1342,7 +1375,7 @@ proc_redraw_blocks:
 	inc c
 	call proc_draw_block
 	
-	ld iy,MONSTER_X
+	ld iy,MONSTER_START
 	ld a,(BUG_COUNT)
 	cp 0
 	jr z, proc_redraw_blocks_bugs_end
@@ -1368,8 +1401,8 @@ proc_redraw_blocks2:
 	push bc
 	call proc_get_block_index
 	pop bc
-	ld ixh,h
-	ld ixl,l
+	ld (CURRENT_SPRITE),hl
+	ld ix,(CURRENT_SPRITE)
 	call proc_get_screen_pixel_address
 	ld a,(ix)
 	ld (hl),a
@@ -1383,6 +1416,41 @@ proc_redraw_blocks2:
 	dec b
 	jr nz,proc_redraw_blocks_loop
 proc_redraw_blocks_bugs_end:
+	ld a,(WALKER_COUNT)
+	cp 0
+	jr z,proc_redreaw_blocks_walkers_end
+	ld b,a
+proc_redraw_blocks_loop2:
+	push bc
+	ld a,(iy)
+	and %00000111
+	jr nz, proc_redraw_blocks_loop2_end
+	ld a,(iy)
+	dec a
+	rra
+	rra
+	rra
+	and %00011111
+	ld c,a
+	ld a,(iy+1)
+	rra
+	rra
+	rra
+	and %00011111
+	ld b,a
+	inc b
+	push bc
+	call proc_draw_block
+	pop bc
+	inc b
+	call proc_draw_block
+proc_redraw_blocks_loop2_end:
+	pop bc
+	ld de, 5
+	add iy,de
+	dec b
+	jr nz,proc_redraw_blocks_loop2
+proc_redreaw_blocks_walkers_end:
 ret
 ENDP
 
@@ -1441,7 +1509,7 @@ start:
 	ld hl, PLAYER_POS
 	ld a, 40
 	ld (hl),a
-	ld a, 24
+	ld a, 24d
 	inc hl
 	ld (hl),a
 	xor a
