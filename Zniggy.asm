@@ -54,10 +54,14 @@ SCRATCH_ADDRESS2            equ $5CCD
 SCRATCH_ADDRESS3            equ $5CD3
 CURRENT_ROOM_ADDRESS        equ $5CCE
 CURRENT_ROOM_NUMBER         equ $5CD0
+CURRENT_ROOM_GEMS           equ $5CF0
 CURRENT_SPRITE              equ $5CD4
 SPRITE_LENGTH               equ $5CD2
 BUG_COUNT                   equ $5FFF
 WALKER_COUNT                equ $5FFE
+
+COLLECTED_GEMS              equ $6F00
+GEM_COLOR                   equ $5EFF
 
 PLAYER_POS                  equ $5D00
 PLAYER_X                    equ $5D00
@@ -65,8 +69,10 @@ PLAYER_Y                    equ $5D01
 PLAYER_VEL                  equ $5D02
 PLAYER_ANIM                 equ $5D03
 PLAYER_SPRITE               equ $5D04
-PLAYER_BX                   equ $5D06
-PLAYER_BY                   equ $5D07
+PLAYER_GEMS                 equ $5D06
+PLAYER_ENTRY_X              equ $5D07
+PLAYER_ENTRY_Y              equ $5D08
+
 
 MONSTER_START               equ $6000
 MONSTER_POS                 equ $6000
@@ -82,9 +88,52 @@ ROOM_SIZE                   equ 32*18
 SCREEN_HEIGHT               equ 24
 MAP_WIDTH                   equ 2
 
+CHAR_A equ 33
+CHAR_B equ 34
+CHAR_C equ 35
+CHAR_D equ 36
+CHAR_E equ 37
+CHAR_F equ 38
+CHAR_G equ 39
+CHAR_H equ 40
+CHAR_I equ 41
+CHAR_J equ 42
+CHAR_K equ 43
+CHAR_L equ 44
+CHAR_M equ 45
+CHAR_N equ 46
+CHAR_O equ 47
+CHAR_P equ 48
+CHAR_Q equ 49
+CHAR_R equ 50
+CHAR_S equ 51
+CHAR_T equ 52
+CHAR_U equ 53
+CHAR_V equ 54
+CHAR_W equ 55
+CHAR_X equ 56
+CHAR_Y equ 57
+CHAR_Z equ 58
+CHAR_COLON equ 26
+CHAR_SQ equ 7
+CHAR_SPACE equ 96
+CHAR_ZERO equ 16
+LC equ 32
+
+
 ;==============================================================
 ; Data
 ;==============================================================
+
+DATA_LIVES_STRING:
+db CHAR_Z, CHAR_N, CHAR_I, CHAR_G, CHAR_S, CHAR_COLON
+PLAYER_LIVES:
+db CHAR_ZERO + 9, 0
+DATA_GEMS_STRING:
+db CHAR_G, CHAR_E, CHAR_M, CHAR_S, CHAR_COLON
+PLAYER_GEM_TEXT:
+db CHAR_ZERO + 0, CHAR_ZERO + 9, 0
+
 DATA_TILE_PIXELS:
 
 DATA_SPRITES:
@@ -404,6 +453,17 @@ db %01001011, %11010010
 db %00000111, %11100000
 db %00000001, %10000000 
  
+;TODO: Some sort of weird addressing error here
+db 0,0
+DATA_GEM:
+db %00111100
+db %01011010
+db %11111111
+db %01011010
+db %00111100
+db %00111100
+db %00011000
+db %00011000
  
 DATA_BLOCK_SPRITES:
 BLOCK_0:
@@ -487,6 +547,7 @@ db %11111110
 db %11111110
 db %11111110
 db %11001000
+
 DATA_BLOCK_ATTRIBS:
 db BLACK_PAPER | BLACK_INK | BRIGHT
 db BLACK_PAPER | GREEN_INK | BRIGHT
@@ -528,6 +589,12 @@ db 136, 70, DATA_BUG, DATA_BUG>>8, 1
 db 152, 70, DATA_BUG, DATA_BUG>>8, 1
 db 160, 103, DATA_ZIGGY_LEFT, DATA_ZIGGY_LEFT>>8, 1
 db 160, 95, DATA_ZIGGY_LEFT, DATA_ZIGGY_LEFT>>8, 1
+; Room name
+db CHAR_Z, CHAR_N + LC, CHAR_I + LC, CHAR_G + LC, CHAR_G + LC, CHAR_Y + LC
+db CHAR_SQ, CHAR_S + LC, CHAR_SPACE, CHAR_F, CHAR_O + LC, CHAR_R + LC
+db CHAR_E + LC, CHAR_S + LC, CHAR_T + LC, 0
+; Gems
+db $08,$50,$09,$50,$0A,$50,$0B,$50,$0C,$50,$0D,$50
 
 ROOM_1:
 db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -554,6 +621,12 @@ db 40, 70, DATA_BUG, DATA_BUG>>8, 1
 db 88, 35, DATA_BUG, DATA_BUG>>8, 1
 db 184, 35, DATA_BUG, DATA_BUG>>8, 1
 db 168, 70, DATA_BUG, DATA_BUG>>8, 1
+
+db CHAR_B, CHAR_I+LC, CHAR_G+LC, CHAR_SPACE
+db CHAR_C, CHAR_H+LC, CHAR_A+LC, CHAR_S+LC, CHAR_M+LC, 0
+
+; Gems
+db $08,$40,$09,$40,$0A,$40,$0B,$40,$0C,$40,$0D,$40
 
 ROOM_2:
 db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -897,6 +970,58 @@ ENDP
 
 ;-------------------------------------------------------------
 PROC
+proc_check_player_collect:
+;-------------------------------------------------------------
+	ld a,(PLAYER_X)
+	add a,4
+	rra
+	rra
+	rra
+	and %00011111
+	ld c,a
+	ld a,(PLAYER_Y)
+	add a,16
+	ld e,a
+	ld ix,CURRENT_ROOM_GEMS
+	ld d,1
+proc_check_player_collect_loop:
+	ld a,(ix)
+	cp c
+	jr nz,proc_check_player_collect_loop_end
+	ld a,(ix+1)
+	cp e
+	jr nc,proc_check_player_collect_loop_end
+	add a,4
+	ld hl,PLAYER_Y
+	cp (hl)
+	jr c,proc_check_player_collect_loop_end
+	ld hl,COLLECTED_GEMS
+	ld a,(CURRENT_ROOM_NUMBER)
+	ld b,0
+	ld c,a
+	add hl,bc
+	ld a,(hl)
+	or d
+	ld (hl),a
+	call proc_set_gem_data
+	ld a,(PLAYER_GEMS)
+	add a,1
+	daa
+	ld (PLAYER_GEMS),a
+	call proc_draw_values_text
+proc_check_player_collect_loop_end:
+	inc ix
+	inc ix
+	xor a
+	rl d
+	ld a,d
+	and %00111111
+	jr nz, proc_check_player_collect_loop
+ret
+ENDP
+
+;-------------------------------------------------------------
+PROC
 proc_update_player:
 ;-------------------------------------------------------------
 	; AFFECTS: hl, de, a, b
@@ -987,6 +1112,7 @@ proc_update_player_anim_r:
 proc_update_player_end:
 	call proc_move_player_out_walls
 	call proc_check_transition
+	call proc_check_player_collect
 ret
 ENDP
 
@@ -1454,12 +1580,194 @@ proc_redreaw_blocks_walkers_end:
 ret
 ENDP
 
+;-------------------------------------------------------------
+PROC
+proc_draw_gems:
+;-------------------------------------------------------------
+	; AFFECTS: everything
+	push iy
+	push ix
+	
+	ld a,(GEM_COLOR)
+	inc a
+	and %00000111
+	jr nz,proc_draw_gems2
+	inc a
+proc_draw_gems2:
+	or BLACK_PAPER
+	ld (GEM_COLOR),a
+	
+	ld ix,CURRENT_ROOM_GEMS
+	ld b,6
+proc_draw_gems_loop:
+	push bc
+	ld a,$FF
+	cp (ix)
+	jr z, proc_draw_gems_loop_end
+	ld b,(ix+1)
+	ld c,(ix)
+	push bc
+	ld a,b
+	rra
+	rra
+	rra
+	and %00011111
+	ld b,a
+	call proc_get_screen_attribute_address
+	ld a, (GEM_COLOR)
+	ld (hl),a
+	pop bc
+	call proc_get_screen_pixel_address
+	ld de, 32*8
+	ld b,8
+	ld iy,DATA_GEM
+proc_draw_gems_loop2:
+	ld a,(iy)
+	ld (hl),a
+	inc iy
+	add hl,de
+	dec b
+	jr nz,proc_draw_gems_loop2
+proc_draw_gems_loop_end:
+	inc ix
+	inc ix
+	pop bc
+	dec b
+	jr nz, proc_draw_gems_loop
+	
+	pop ix
+	pop iy
+ret
+ENDP
+	
+;-------------------------------------------------------------
+PROC
+proc_set_gem_data:
+;-------------------------------------------------------------
+	; AFFECTS: a, bc, hl
+	ld b,0
+	ld a,(CURRENT_ROOM_NUMBER)
+	ld c,a
+	ld hl,COLLECTED_GEMS
+	add hl,bc
+	ld a,(hl) ; a contains gem bits and such
+	ld c,6
+	ld hl,CURRENT_ROOM_GEMS
+proc_set_gem_loop:
+	bit 0,a
+	jr z,proc_set_gem_loop_end
+	ld (hl),$FF
+proc_set_gem_loop_end:
+	inc l
+	inc l
+	rra
+	dec c
+	jr nz,proc_set_gem_loop
+ret
+ENDP
+
+;-------------------------------------------------------------
+PROC
+proc_draw_text:
+;-------------------------------------------------------------
+	; Input: b: y-position, c: x-cell, a: character
+	; AFFECTS: everything
+	ld d,0
+	rla
+	rl d
+	rla
+	rl d
+	rla
+	rl d
+	and %11111000
+	ld e,a
+	ld ix,$3D00
+	add ix,de
+	call proc_get_screen_pixel_address
+	ld b,8
+	ld de,32*8
+proc_draw_text_loop:
+	ld a,(ix)
+	ld (hl),a
+	inc ix
+	add hl,de
+	dec b
+	jr nz,proc_draw_text_loop
+ret
+ENDP
+
+;-------------------------------------------------------------
+PROC
+proc_draw_string:
+;-------------------------------------------------------------
+	; Input: b: y-position, c: x-cell, hl: string address
+	; AFFECTS: everything
+	ld a,(hl)
+	cp 0
+	ret z
+	push hl
+	push bc
+	call proc_draw_text
+	pop bc
+	pop hl
+	inc hl
+	inc c
+	jr proc_draw_string
+ENDP
+
+
+;-------------------------------------------------------------
+PROC
+proc_draw_values_text:
+;-------------------------------------------------------------
+	ld a,(PLAYER_GEMS)
+	and $0F
+	add a,CHAR_ZERO
+	ld (PLAYER_GEM_TEXT+1),a
+	ld a,(PLAYER_GEMS)
+	rra
+	rra
+	rra
+	rra
+	and $0F
+	add a,CHAR_ZERO
+	ld (PLAYER_GEM_TEXT),a
+	
+	ld bc,$A003
+	ld hl,DATA_LIVES_STRING
+	call proc_draw_string
+	inc hl
+	ld c, 20
+	call proc_draw_string
+ret
+ENDP
 
 ;-------------------------------------------------------------
 PROC
 proc_load_map:
 ;-------------------------------------------------------------
+	; Input: None
 	; AFFECTS: everything
+	ld a,(PLAYER_X)
+	ld (PLAYER_ENTRY_X),a
+	ld a,(PLAYER_Y)
+	ld (PLAYER_ENTRY_Y),a
+	
+	xor a
+	ld hl, $50C0
+	ld bc,$0820
+	ld de,32*7
+proc_load_map_loop:
+	ld (hl),a
+	inc hl
+	dec c
+	jr nz,proc_load_map_loop
+	ld c,32
+	add hl,de
+	dec b
+	jr nz,proc_load_map_loop
+	
+	
 	ld b,0
 	ld a,(CURRENT_ROOM_NUMBER)
 	rla
@@ -1486,7 +1794,6 @@ proc_load_map:
 	ld (WALKER_COUNT),a
 	add a,b
 	
-	inc a
 	ld b,a
 	rla
 	rla
@@ -1495,7 +1802,19 @@ proc_load_map:
 	ld c,a
 	inc c
 	inc hl
-	ldir	
+	ldir
+	dec hl
+	ld bc,$B001
+	call proc_draw_string
+	
+	inc hl
+	ld bc,12
+	ld de,CURRENT_ROOM_GEMS
+	ldir
+	call proc_set_gem_data
+	call proc_draw_values_text
+	
+	
 ret
 ENDP
 
@@ -1509,10 +1828,11 @@ start:
 	ld hl, PLAYER_POS
 	ld a, 40
 	ld (hl),a
-	ld a, 24d
+	ld a, 24
 	inc hl
 	ld (hl),a
 	xor a
+	ld (PLAYER_GEMS),a
 	inc hl
 	ld (hl),a
 	ld hl, PLAYER_ANIM
@@ -1521,6 +1841,9 @@ start:
 	ld (PLAYER_SPRITE), hl
 	ld hl, CURRENT_ROOM_NUMBER
 	ld (hl),0
+	ld a,CHAR_ZERO+3
+	ld (PLAYER_LIVES),a
+	
 	
 	call proc_load_map
 loopyboy:
@@ -1528,6 +1851,7 @@ loopyboy:
 	call proc_redraw_blocks	
 	call proc_update_player
 	call proc_draw_sprites
+	call proc_draw_gems
 	call proc_update_bugs
 	call proc_update_walkers
 	jr loopyboy
