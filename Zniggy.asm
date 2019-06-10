@@ -14,7 +14,7 @@
 ; 0x5CCB - 0xFF57 FREE RAM OUR GAME
 ; 0xFF58 - 0xFFFF RESERVED: ???
  
-org $8000
+org $8100
  
 ;==============================================================
 ; Defines
@@ -48,6 +48,12 @@ WHITE_PAPER                 equ WHITE_INK << 3
  
 FLASH                       equ $80
 BRIGHT                      equ $40
+ 
+BLOCK_COLLISION             equ $01
+BLOCK_COLLISION_BIT         equ 0
+BLOCK_LADDER                equ $02
+BLOCK_LADDER_BIT            equ 1
+
  
 SCRATCH_ADDRESS1            equ $5CCB
 SCRATCH_ADDRESS2            equ $5CCD
@@ -87,6 +93,9 @@ ROOM_HEIGHT                 equ 18
 ROOM_SIZE                   equ 32*18
 SCREEN_HEIGHT               equ 24
 MAP_WIDTH                   equ 2
+
+ROOM_START                  equ $6B00
+ROOM_END                    equ $6D41
 
 CHAR_A equ 33
 CHAR_B equ 34
@@ -559,8 +568,14 @@ db BLACK_PAPER | WHITE_INK | BRIGHT
 db BLACK_PAPER | WHITE_INK | BRIGHT
 db BLACK_PAPER | WHITE_INK | BRIGHT
 
+DATA_BLOCK_PROPERTIES:
+db 0
+db BLOCK_COLLISION
+db BLOCK_COLLISION
+db BLOCK_LADDER
+
 DATA_ROOMS:
-ROOM_0:
+;ROOM_0:
 db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 db 0,3,4,4,5,0,0,0,0,0,0,0,0,3,4,4,4,4,5,0,0,0,0,0,0,0,3,4,4,5,0,0
 db 0,6,7,7,8,0,0,3,4,5,0,0,0,6,7,7,7,7,8,0,0,3,5,0,0,0,6,7,7,8,0,0
@@ -579,6 +594,10 @@ db 0,0,1,2,2,2,2,2,2,2,2,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,2,2,2,1,0,0
 db 1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,1,1
 db 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
 db 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
+
+ROOM_0:
+db 248,0,100,3,112,0,20,1,32,1,64,2,$FF
+
 ;Monsters
 db 1,1
 db 136, 70, DATA_BUG, DATA_BUG>>8, 1
@@ -875,9 +894,8 @@ proc_move_player_out_walls:
 	add a,16
 	ld b,a
 	push bc
-	call proc_get_block_index
-	ld a,(hl)
-	cp 0
+	call proc_get_block_properties
+	bit BLOCK_COLLISION_BIT,a
 	jr z, proc_move_player_out_walls2
 	ld a,(PLAYER_X)
 	and %11111000
@@ -887,9 +905,8 @@ proc_move_player_out_walls2:
 	pop bc
 	push bc
 	inc c
-	call proc_get_block_index
-	ld a,(hl)
-	cp 0
+	call proc_get_block_properties
+	bit BLOCK_COLLISION_BIT,a
 	jr z, proc_move_player_out_walls3
 	ld a,(PLAYER_X)
 	and %11111000
@@ -901,9 +918,8 @@ proc_move_player_out_walls3:
 	sub 18
 	ret c
 	ld b,a
-	call proc_get_block_index
-	ld a,(hl)
-	cp 0
+	call proc_get_block_properties
+	bit BLOCK_COLLISION_BIT,a
 	ret z
 	ld a,(PLAYER_VEL)
 	xor a
@@ -1086,6 +1102,41 @@ ENDP
 
 ;-------------------------------------------------------------
 PROC
+proc_climb_ladder:
+;-------------------------------------------------------------
+	ld a,(PLAYER_X)
+	rra
+	rra
+	rra
+	and %00011111
+	ld c,a
+	ld a,(PLAYER_Y)
+	add a,18
+	ld b,a
+	call proc_get_block_properties
+	bit BLOCK_LADDER_BIT,a
+	ret z
+	ld a,0
+	ld (PLAYER_VEL),a
+	ld bc,&FBFE
+	in a,(c)
+	bit 1,a
+	jr nz, proc_climb_ladder2
+	ld a,254
+	ld (PLAYER_VEL),a
+	ret
+proc_climb_ladder2:
+	ld bc, &FDFE
+	in a,(c)
+	bit 1,a
+	ret nz
+	ld a,1
+	ld (PLAYER_VEL),a
+ret
+ENDP
+
+;-------------------------------------------------------------
+PROC
 proc_update_player:
 ;-------------------------------------------------------------
 	; AFFECTS: hl, de, a, b
@@ -1127,12 +1178,11 @@ proc_update_player_cap:
 	add a,23
 	and %11111000
 	ld b,a
-	call proc_get_block_index
-	ld d,(hl)
+	call proc_get_block_properties
+	ld d,a
 	pop af
-	inc d
-	dec d
 	ld (SCRATCH_ADDRESS2),a
+	bit BLOCK_COLLISION_BIT,d
 	jr z, proc_update_player_reset_vel
 	pop hl
 	pop bc
@@ -1152,6 +1202,10 @@ proc_update_player_cap:
 	
 proc_update_player_reset_vel:
 	ld a,(SCRATCH_ADDRESS2)
+	ld (PLAYER_VEL),a
+	call proc_climb_ladder
+	ld a,(PLAYER_VEL)
+	
 	pop hl
 	pop bc
 	pop de
@@ -1213,7 +1267,7 @@ proc_update_bugs2:
 	sub 2
 	ld b,a
 proc_update_bugs3:
-	call proc_get_block_index
+	call proc_get_block_properties
 	ld a,(hl)
 	cp 0
 	jr nz, proc_update_bugs4
@@ -1448,6 +1502,22 @@ proc_get_block_index:
 	add hl,bc
 ret
 ENDP	
+
+;-------------------------------------------------------------
+PROC
+proc_get_block_properties:
+;-------------------------------------------------------------
+    ; IN: b = y-pixel coord (0..191), c: x-cell coord (0..31)
+    ; OUT: a = block properties
+	; AFFECTS: a,bc,hl
+	call proc_get_block_index
+	ld c,(hl)
+	ld b,0
+	ld hl,DATA_BLOCK_PROPERTIES
+	add hl,bc
+	ld a,(hl)
+ret
+ENDP
 
 ;-------------------------------------------------------------
 PROC
@@ -1841,13 +1911,32 @@ proc_load_map_loop:
 	ld b,(hl)
 	inc hl
 	ld c,(hl)
-	ld (CURRENT_ROOM_ADDRESS),bc
+	;ld (CURRENT_ROOM_ADDRESS),bc
+
 	
+	ld de,ROOM_START
+	ld (CURRENT_ROOM_ADDRESS),de
+proc_load_map_loop2:
+	ld a,(bc)
+	cp $FF
+	jr z,proc_load_map_loop2_end
+	ld h,a
+	inc bc
+	ld a,(bc)
+proc_load_map_loop3:
+	ld (de),a
+	inc de
+	dec h
+	jr nz,proc_load_map_loop3
+	inc bc
+	jr proc_load_map_loop2
+proc_load_map_loop2_end:
+	inc bc
 	push bc
 	call proc_draw_blocks
 	pop hl
-	ld bc,ROOM_SIZE
-	add hl,bc
+	;ld bc,ROOM_SIZE
+	;add hl,bc
 	ld a,(hl)
 	ld de,MONSTER_START
 	ld (BUG_COUNT),a
@@ -1881,7 +1970,7 @@ proc_load_map_loop:
 ret
 ENDP
 
-
+org $8000
 ;==============================================================
 ; Initialization
 ;==============================================================
