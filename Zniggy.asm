@@ -60,7 +60,7 @@ SPRITE_LENGTH               equ $5CD2
 BUG_COUNT                   equ $5FFF
 WALKER_COUNT                equ $5FFE
 
-COLLECTED_GEMS              equ $6F00
+COLLECTED_GEMS              equ $60A0
 GEM_COLOR                   equ $5EFF
 
 PLAYER_POS                  equ $5D00
@@ -453,8 +453,6 @@ db %01001011, %11010010
 db %00000111, %11100000
 db %00000001, %10000000 
  
-;TODO: Some sort of weird addressing error here
-db 0,0
 DATA_GEM:
 db %00111100
 db %01011010
@@ -466,6 +464,8 @@ db %00011000
 db %00011000
  
 DATA_BLOCK_SPRITES:
+; TODO: FIX ADDRESSING BUG WRITING TO THIS MEMORY
+db 0,0,0,0
 BLOCK_0:
 db %00000000
 db %00000000
@@ -580,21 +580,15 @@ db 1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,1,1
 db 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
 db 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
 ;Monsters
-db 6,2
-db 64, 70, DATA_BUG, DATA_BUG>>8, 1
-db 88, 70, DATA_BUG, DATA_BUG>>8, 1
-db 104, 70, DATA_BUG, DATA_BUG>>8, 1
-db 120, 70, DATA_BUG, DATA_BUG>>8, 1
+db 1,1
 db 136, 70, DATA_BUG, DATA_BUG>>8, 1
-db 152, 70, DATA_BUG, DATA_BUG>>8, 1
 db 160, 103, DATA_ZIGGY_LEFT, DATA_ZIGGY_LEFT>>8, 1
-db 160, 95, DATA_ZIGGY_LEFT, DATA_ZIGGY_LEFT>>8, 1
 ; Room name
 db CHAR_Z, CHAR_N + LC, CHAR_I + LC, CHAR_G + LC, CHAR_G + LC, CHAR_Y + LC
 db CHAR_SQ, CHAR_S + LC, CHAR_SPACE, CHAR_F, CHAR_O + LC, CHAR_R + LC
 db CHAR_E + LC, CHAR_S + LC, CHAR_T + LC, 0
 ; Gems
-db $08,$50,$09,$50,$0A,$50,$0B,$50,$0C,$50,$0D,$50
+db $08,$40,$09,$40,$0A,$40,$0B,$40,$0C,$40,$0D,$40
 
 ROOM_1:
 db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -650,6 +644,12 @@ db 0,6,7,7,7,7,7,7,7,8,0,0,0,6,7,7,7,7,7,8,0,0,0,0,0,0,6,7,7,8,0,0
 
 db 0,0
 
+db CHAR_A, CHAR_B+LC, CHAR_O+LC, CHAR_V+LC, CHAR_E+LC, CHAR_SPACE
+db CHAR_T, CHAR_H+LC, CHAR_E+LC, CHAR_SPACE
+db CHAR_F, CHAR_O+LC, CHAR_R+LC, CHAR_E+LC, CHAR_S+LC, CHAR_T+LC,0
+; Gems
+db $10,$60,$13,$60,$16,$60,$19,$60,$1B,$60,$0D,$60
+
 ROOM_3:
 db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -671,6 +671,12 @@ db 0,6,7,7,8,0,0,3,4,5,0,0,0,6,7,7,7,7,8,0,0,3,5,0,6,7,7,7,7,7,8,0
 db 0,0,0,0,0,0,0,6,7,8,0,0,0,0,0,0,0,0,0,0,0,6,7,0,0,0,0,0,0,0,0,0
 
 db 0,0
+
+db CHAR_C, CHAR_L+LC, CHAR_O+LC, CHAR_U+LC, CHAR_D+LC, CHAR_SPACE
+db CHAR_E, CHAR_N+LC, CHAR_T+LC, CHAR_R+LC, CHAR_A+LC, CHAR_N+LC
+db CHAR_C+LC, CHAR_E+LC,0
+; Gems
+db $10,$60,$13,$60,$16,$60,$19,$60,$1B,$60,$0D,$60
 
 DATA_ROOM_LIST:
 db ROOM_0>>8, ROOM_0, ROOM_1>>8, ROOM_1
@@ -952,6 +958,7 @@ proc_check_transition3:
 	ld (PLAYER_Y),a
 	ld a,(CURRENT_ROOM_NUMBER)
 	sub MAP_WIDTH
+	and %00000011
 	ld (CURRENT_ROOM_NUMBER),a
 	call proc_load_map
 	ret
@@ -963,6 +970,7 @@ proc_check_transition4:
 	ld (PLAYER_Y),a
 	ld a,(CURRENT_ROOM_NUMBER)
 	add a,MAP_WIDTH
+	and %00000011
 	ld (CURRENT_ROOM_NUMBER),a
 	call proc_load_map
 ret
@@ -986,6 +994,8 @@ proc_check_player_collect:
 	ld d,1
 proc_check_player_collect_loop:
 	ld a,(ix)
+	cp $FF
+	jr z,proc_check_player_collect_loop_end
 	cp c
 	jr nz,proc_check_player_collect_loop_end
 	ld a,(ix+1)
@@ -1017,6 +1027,60 @@ proc_check_player_collect_loop_end:
 	ld a,d
 	and %00111111
 	jr nz, proc_check_player_collect_loop
+ret
+ENDP
+
+;-------------------------------------------------------------
+PROC
+proc_check_player_death:
+;-------------------------------------------------------------
+	ld ix,MONSTER_START
+	ld a,(PLAYER_X)
+	add a,6
+	ld c,a
+	ld a,(PLAYER_Y)
+	add a,16
+	ld b,a
+	ld a,(BUG_COUNT)
+	ld d,a
+	ld a,(WALKER_COUNT)
+	add a,d
+	cp 0
+	jr z,proc_check_player_death_loop_end
+	ld d,a
+proc_check_player_death_loop:
+	push de
+	ld de,(PLAYER_POS)
+	ld a,(ix)
+	cp c
+	jr nc,proc_check_player_death_end
+	add a,14
+	cp e
+	jr c,proc_check_player_death_end
+	ld a,(ix+1)
+	cp b
+	jr nc,proc_check_player_death_end
+	add a,8
+	cp d
+	jr c,proc_check_player_death_end
+	ld a,(PLAYER_LIVES)
+	dec a
+	ld (PLAYER_LIVES),a
+	ld a,(PLAYER_ENTRY_X)
+	ld (PLAYER_X),a
+	ld a,(PLAYER_ENTRY_Y)
+	ld (PLAYER_Y),a
+	call proc_load_map
+	pop de
+	jr proc_check_player_death_loop_end
+proc_check_player_death_end:
+	ld de,MONSTER_SIZE
+	add ix,de
+	pop de
+	dec d
+	jr nz,proc_check_player_death_loop
+	
+proc_check_player_death_loop_end:
 ret
 ENDP
 
@@ -1112,7 +1176,6 @@ proc_update_player_anim_r:
 proc_update_player_end:
 	call proc_move_player_out_walls
 	call proc_check_transition
-	call proc_check_player_collect
 ret
 ENDP
 
@@ -1844,6 +1907,14 @@ start:
 	ld a,CHAR_ZERO+3
 	ld (PLAYER_LIVES),a
 	
+	ld hl,COLLECTED_GEMS
+	xor a
+	ld b,64
+start_reset_loop:
+	ld (hl),a
+	inc hl
+	dec b
+	jr nz,start_reset_loop
 	
 	call proc_load_map
 loopyboy:
@@ -1854,6 +1925,11 @@ loopyboy:
 	call proc_draw_gems
 	call proc_update_bugs
 	call proc_update_walkers
-	jr loopyboy
+	call proc_check_player_collect
+	call proc_check_player_death
+	ld a,(PLAYER_LIVES)
+	cp CHAR_ZERO-1
+	jr nz,loopyboy
+	jr start
 ret
 end start
