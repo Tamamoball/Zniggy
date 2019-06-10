@@ -97,7 +97,7 @@ MAP_WIDTH                   equ 2
 ROOM_START                  equ $6B00
 ROOM_END                    equ $6D41
 
-ROOM_BITS                   equ %00000001
+ROOM_BITS                   equ %00000011
 
 CHAR_A equ 33
 CHAR_B equ 34
@@ -584,6 +584,8 @@ db 102,102,102,102,102,102,102,102
 db 98,115,48,56,30,63,75,120
 db 70,206,12,28,120,252,243,30
 db 16,231,102,24,40,100,100,72
+db 127,127,127,0,247,247,247,0
+db 32,207,204,48,80,200,200,144
 DATA_BLOCK_ATTRIBS:
 db 0
 db 7
@@ -603,6 +605,8 @@ db 67
 db 67
 db 67
 db 67
+db 68
+db 2
 db 68
 DATA_BLOCK_PROPERTIES:
 db 0
@@ -624,6 +628,11 @@ db 1
 db 1
 db 1
 db 1
+db 1
+db 2
+
+
+
 
 
 
@@ -687,9 +696,26 @@ db CHAR_C, CHAR_E + LC, CHAR_L + LC, CHAR_L + LC, CHAR_A + LC, CHAR_R + LC, 0
 ; Gems
 db 6,104,9,112,12,104,15,96,7,64,20,24
 
+ROOM_2:
+db 4,10,17,0,15,10,17,0,15,10,17,0,15,10,11,0,1,13,16,12,4,10
+db 11,0,1,15,144,0,4,10,17,0,6,12,1,11,4,12,4,19,17,0,6,10
+db 1,11,4,10,4,19,17,0,2,10,2,0,2,19,1,11,4,19,4,10,17,0
+db 1,10,1,11,2,0,2,10,2,11,7,19,17,0,1,19,1,11,3,0,1,19
+db 2,11,1,20,2,19,4,10,17,0,1,10,1,11,1,10,2,0,2,10,2,11
+db 6,19,10,0,1,15,1,0,1,15,4,0,2,11,1,19,4,0,2,11,6,19
+db 10,0,1,16,1,12,1,17,4,0,2,11,1,19,4,0,2,11,34,19,$FF
+
+;Monsters
+db 0,0
+; Room name
+db CHAR_T, CHAR_H + LC, CHAR_E + LC, 255
+db CHAR_H, CHAR_O + LC, CHAR_L + LC, CHAR_E + LC, 0
+; Gems
+db 6,104,9,112,12,104,15,96,7,64,20,24
+
 DATA_ROOM_LIST:
 db ROOM_0>>8, ROOM_0, ROOM_1>>8, ROOM_1
-;db ROOM_2>>8, ROOM_2, ROOM_3>>8, ROOM_3
+db ROOM_0>>8, ROOM_0, ROOM_2>>8, ROOM_2
 
  
 ;==============================================================
@@ -951,7 +977,7 @@ proc_check_transition:
 	and MAP_WIDTH-1
 	ld c,a
 	ld a,(CURRENT_ROOM_NUMBER)
-	and ~(MAP_WIDTH-1)
+	and ROOM_BITS & (~(MAP_WIDTH-1))
 	add a,c
 	ld (CURRENT_ROOM_NUMBER),a
 	call proc_load_map
@@ -967,7 +993,7 @@ proc_check_transition2:
 	and MAP_WIDTH-1
 	ld c,a
 	ld a,(CURRENT_ROOM_NUMBER)
-	and ~(MAP_WIDTH-1)
+	and ROOM_BITS & (~(MAP_WIDTH-1))
 	add a,c
 	ld (CURRENT_ROOM_NUMBER),a
 	call proc_load_map
