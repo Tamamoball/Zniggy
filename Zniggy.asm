@@ -135,7 +135,6 @@ LC equ 32
 ;==============================================================
 ; Data
 ;==============================================================
-
 soundstart:
 db 0, 0, 0, 0, 0, 0, 231, 0, 231, 0, 207, 0, 207, 16, 207, 0, 239
 db 16, 231, 0, 255, 0, 247, 0, 247, 8, 243, 8, 247, 8, 243, 8, 243, 12
@@ -907,7 +906,7 @@ proc_move_player_out_walls:
 	and %00011111
 	ld c,a
 	ld a,(PLAYER_Y)
-	add a,16
+	add a,15
 	ld b,a
 	push bc
 	call proc_get_block_properties
@@ -923,8 +922,7 @@ proc_move_player_out_walls:
 	jr z, proc_move_player_out_walls2
 proc_move_player_out_walls_right:
 	ld a,(PLAYER_X)
-	and %11111000
-	add a,8
+	add a,1
 	ld (PLAYER_X),a
 proc_move_player_out_walls2:
 	pop bc
@@ -943,20 +941,19 @@ proc_move_player_out_walls2:
 	jr z, proc_move_player_out_walls3
 proc_move_player_out_walls_left:
 	ld a,(PLAYER_X)
-	and %11111000
 	dec a
 	ld (PLAYER_X),a
 proc_move_player_out_walls3:
 	pop bc
 	ld a,b
-	sub 14
+	sub 12
 	ret c
 	ld b,a
 	call proc_get_block_properties
 	bit BLOCK_COLLISION_BIT,a
 	ret z
 	ld a,(PLAYER_VEL)
-	xor a
+	ld a,1
 	ld (PLAYER_VEL),a
 ret
 ENDP
@@ -967,7 +964,7 @@ proc_check_transition:
 ;-------------------------------------------------------------
 	ld a,(PLAYER_X)
 	ld b,a
-	ld a, 246
+	ld a, 245
 	cp b
 	jr nc, proc_check_transition2
 	ld a,8
@@ -1236,7 +1233,7 @@ proc_update_player_cap:
 	and %00011111
 	ld c,a	
 	ld a,(PLAYER_Y)
-	add a,23
+	add a,16
 	and %11111000
 	ld b,a
 	call proc_get_block_properties
@@ -1248,17 +1245,17 @@ proc_update_player_cap:
 	pop hl
 	pop bc
 	ld a,b
-	or %00000111
+	and %11111100
 	ld b,a
 	push bc
 	push hl
-	xor a
+	ld a,0
 	ld (SCRATCH_ADDRESS2),a
 	ld bc,&FBFE
 	in a,(c)
 	bit 1,a
 	jr nz, proc_update_player_reset_vel
-	ld a,248
+	ld a,249
 	ld (SCRATCH_ADDRESS2),a
 	
 proc_update_player_reset_vel:
@@ -1271,6 +1268,12 @@ proc_update_player_reset_vel:
 	pop bc
 	pop de
 	ld (hl),a
+	cp 127
+	jr nc,proc_update_player_skip_reduce
+	inc a
+	rra
+	and %00001111
+proc_update_player_skip_reduce:
 	dec hl
 	add a,b
 	ld (hl),a
