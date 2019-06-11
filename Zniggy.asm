@@ -135,6 +135,9 @@ LC equ 32
 ;==============================================================
 ; Data
 ;==============================================================
+SWAP_BIT:
+db 0
+
 soundstart:
 db 0, 0, 0, 0, 0, 0, 231, 0, 231, 0, 207, 0, 207, 16, 207, 0, 239
 db 16, 231, 0, 255, 0, 247, 0, 247, 8, 243, 8, 247, 8, 243, 8, 243, 12
@@ -235,6 +238,7 @@ DATA_TILE_PIXELS:
 
 DATA_SPRITES:
 DATA_ZIGGY_RIGHT:
+db BLACK_PAPER | PURPLE_INK | BRIGHT
 ; zniggy_0
 db %00011000>>0, %00011000<<8
 db %00111100>>0, %00111100<<8
@@ -384,6 +388,7 @@ db %01011110>>7, %01011110<<1
 
 
 DATA_ZIGGY_LEFT:
+db BLACK_PAPER | PURPLE_INK | BRIGHT
 ; zniggy_0
 db %00011000>>0, %00011000<<8
 db %00111100>>0, %00111100<<8
@@ -550,6 +555,25 @@ db %01001011, %11010010
 db %00000111, %11100000
 db %00000001, %10000000 
  
+DATA_BOTTLE:
+db 68
+db 48,0,48,0,48,0,48,0,120,0,120,0,252,0,252,0
+db 4,0,244,0,244,0,4,0,252,0,252,0,252,0,252,0
+db 3,0,3,0,3,0,6,0,30,0,30,0,63,0,63,0
+db 1,0,61,0,61,0,1,0,127,0,127,0,126,0,62,0
+db 0,0,0,0,0,2,0,7,0,14,0,252,1,56,3,216
+db 4,88,15,184,31,240,3,224,57,192,124,128,126,0,63,0
+db 0,0,0,28,0,28,0,24,0,248,1,248,3,240,0,112
+db 3,144,3,208,0,208,7,16,7,240,7,240,0,16,7,224
+db 0,12,0,12,0,12,0,12,0,30,0,30,0,63,0,63
+db 0,32,0,47,0,47,0,32,0,63,0,63,0,63,0,63
+db 0,96,0,96,0,96,0,48,0,60,0,60,0,126,0,126
+db 0,64,0,94,0,94,0,64,0,127,0,127,0,63,0,62
+db 0,0,0,0,32,0,112,0,56,0,31,128,14,64,13,224
+db 13,16,14,248,7,252,3,224,1,206,0,159,0,63,0,126
+db 0,96,0,96,0,96,0,48,0,60,0,60,0,126,0,126
+db 0,64,0,94,0,94,0,64,0,127,0,127,0,63,0,62
+ 
 DATA_GEM:
 db %00111100
 db %01011010
@@ -688,7 +712,10 @@ db 2,10,1,15,1,12,1,11,1,10,4,0,1,11,12,0,7,12,1,11,1,12
 db 2,10,1,16,1,12,1,17,1,10,17,0,8,10,1,11,2,10,$FF
 
 ;Monsters
-db 0,0
+db 0,3
+db 160, 16, DATA_BOTTLE, DATA_BOTTLE>>8, 1
+db 80, 63, DATA_BOTTLE, DATA_BOTTLE>>8, 1
+db 88, 119, DATA_BOTTLE, DATA_BOTTLE>>8, 1
 ; Room name
 db CHAR_W, CHAR_I + LC, CHAR_N + LC, CHAR_E + LC, 255
 db CHAR_C, CHAR_E + LC, CHAR_L + LC, CHAR_L + LC, CHAR_A + LC, CHAR_R + LC, 0
@@ -1215,7 +1242,11 @@ proc_update_player_vel:
 	ld b,(hl)
 	inc hl
 	ld a,(hl)
-	inc a
+	push hl
+	ld hl,SWAP_BIT
+	add a,(hl)
+	pop hl
+	
 	cp 5
 	jr nz, proc_update_player_cap
 	ld a,4
@@ -1255,8 +1286,10 @@ proc_update_player_cap:
 	in a,(c)
 	bit 1,a
 	jr nz, proc_update_player_reset_vel
-	ld a,249
+	ld a,251
 	ld (SCRATCH_ADDRESS2),a
+	ld a,1
+	ld (SWAP_BIT),a
 	
 proc_update_player_reset_vel:
 	ld a,(SCRATCH_ADDRESS2)
@@ -1433,6 +1466,9 @@ proc_draw_sprite:
 	;Affects: Everything
 	
 ;Get sprite address from x value
+	ld d,(ix)
+	inc ix
+	
 	ld a,c
 	rla
 	rla
@@ -2133,6 +2169,10 @@ loopyboy:
 	call proc_update_walkers
 	call proc_check_player_collect
 	call proc_check_player_death
+	ld a,(SWAP_BIT)
+	xor %00000001
+	ld (SWAP_BIT),a
+	
 	ld a,(PLAYER_LIVES)
 	cp CHAR_ZERO-1
 	jr nz,loopyboy
