@@ -574,6 +574,11 @@ db 13,16,14,248,7,252,3,224,1,206,0,159,0,63,0,126
 db 0,96,0,96,0,96,0,48,0,60,0,60,0,126,0,126
 db 0,64,0,94,0,94,0,64,0,127,0,127,0,63,0,62
  
+DATA_SNAKE:
+db 68
+db 7,192,15,32,31,56,31,248,16,0,16,0,15,240,0,8
+db 0,8,15,240,16,0,16,0,15,240,0,8,0,8,15,240
+ 
 DATA_GEM:
 db %00111100
 db %01011010
@@ -609,6 +614,14 @@ db 70,206,12,28,120,252,243,30
 db 16,231,102,24,40,100,100,72
 db 127,127,127,0,247,247,247,0
 db 32,207,204,48,80,200,200,144
+db 255,129,255,129,255,129,255,129
+db 1,15,255,127,63,31,7,1
+db 207,207,231,231,207,207,231,231
+db 248,254,255,255,255,255,255,255
+db 248,254,206,255,255,0,254,252
+db 255,255,255,51,0,204,255,255
+db 31,127,115,255,255,0,127,63
+db 255,255,255,255,255,255,254,248
 DATA_BLOCK_ATTRIBS:
 db 0
 db 7
@@ -631,6 +644,14 @@ db 67
 db 68
 db 2
 db 68
+db 66
+db 70
+db 102
+db 70
+db 70
+db 102
+db 70
+db 70
 DATA_BLOCK_PROPERTIES:
 db 0
 db 1
@@ -653,8 +674,14 @@ db 1
 db 1
 db 1
 db 2
-
-
+db 2
+db 1
+db 1
+db 1
+db 1
+db 1
+db 1
+db 1
 
 
 
@@ -680,9 +707,6 @@ db 1,3,3,0,2,6,1,1,1,0,1,3,2,0,5,6,$FF
 
 ;Monsters
 db 0,0
-;db 1,1
-;db 136, 70, DATA_BUG, DATA_BUG>>8, 1
-;db 160, 103, DATA_ZIGGY_LEFT, DATA_ZIGGY_LEFT>>8, 1
 ; Room name
 db CHAR_I, CHAR_C + LC, CHAR_E + LC, CHAR_SPACE, CHAR_P, CHAR_A + LC, CHAR_L + LC
 db CHAR_A + LC, CHAR_C + LC, CHAR_E + LC, CHAR_SPACE, CHAR_E, CHAR_N + LC, CHAR_T + LC
@@ -713,8 +737,8 @@ db 2,10,1,16,1,12,1,17,1,10,17,0,8,10,1,11,2,10,$FF
 
 ;Monsters
 db 0,3
-db 160, 16, DATA_BOTTLE, DATA_BOTTLE>>8, 1
-db 80, 63, DATA_BOTTLE, DATA_BOTTLE>>8, 1
+db 161, 16, DATA_BOTTLE, DATA_BOTTLE>>8, 1
+db 82, 63, DATA_BOTTLE, DATA_BOTTLE>>8, 1
 db 88, 119, DATA_BOTTLE, DATA_BOTTLE>>8, 1
 ; Room name
 db CHAR_W, CHAR_I + LC, CHAR_N + LC, CHAR_E + LC, 255
@@ -737,11 +761,31 @@ db 0,0
 db CHAR_T, CHAR_H + LC, CHAR_E + LC, 255
 db CHAR_H, CHAR_O + LC, CHAR_L + LC, CHAR_E + LC, 0
 ; Gems
-db 3,64,20,8,21,48,3,64,20,8,21,48
+db 3,64,20,8,21,48,3,64,20,8,15,120
+
+ROOM_3:
+db 4,0,1,21,31,0,1,21,31,0,1,21,31,0,1,21,31,0,1,21,31,0
+db 1,21,31,0,1,21,16,0,1,22,4,23,1,21,4,23,1,24,17,23,1,25
+db 8,0,1,21,4,0,1,26,26,0,1,21,4,0,1,26,26,0,1,21,4,0
+db 1,26,26,0,1,21,4,0,1,26,26,0,1,21,4,0,1,26,26,0,1,21
+db 4,0,1,26,16,0,1,27,14,23,1,28,64,0,9,23,1,21,8,23,1,25
+db 22,0,1,21,22,0,$FF
+
+;Monsters
+db 4,0
+db 8, 76, DATA_SNAKE, DATA_SNAKE>>8, 1
+db 48, 102, DATA_SNAKE, DATA_SNAKE>>8, 0
+db 88, 76, DATA_SNAKE, DATA_SNAKE>>8, 1
+db 176, 80, DATA_SNAKE, DATA_SNAKE>>8, 1
+; Room name
+db CHAR_S, CHAR_N + LC, CHAR_A + LC, CHAR_K + LC, CHAR_E + LC, CHAR_SPACE
+db CHAR_Z, CHAR_O + LC, CHAR_N + LC, CHAR_E + LC, 0
+; Gems
+db 10,32,4,80,9,80,29,72,4,80,9,80
 
 DATA_ROOM_LIST:
 db ROOM_0>>8, ROOM_0, ROOM_1>>8, ROOM_1
-db ROOM_0>>8, ROOM_0, ROOM_2>>8, ROOM_2
+db ROOM_3>>8, ROOM_3, ROOM_2>>8, ROOM_2
 
  
 ;==============================================================
@@ -1025,10 +1069,10 @@ proc_check_transition2:
 proc_check_transition3:
 	ld a,(PLAYER_Y)
 	ld b,a
-	ld a,120
+	ld a,128
 	cp b
 	jr nc, proc_check_transition4
-	ld a,140
+	ld a,160
 	cp b
 	jr c, proc_check_transition4
 	ld a,0
@@ -1040,7 +1084,7 @@ proc_check_transition3:
 	call proc_load_map
 	ret
 proc_check_transition4:
-	ld a,250
+	ld a,244
 	cp b
 	ret nc
 	ld a, 118
