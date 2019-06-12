@@ -645,6 +645,10 @@ db 211,82,222,128,243,18,243,94
 db 24,24,52,52,122,122,253,253
 db 211,82,223,129,243,18,243,94
 db 166,164,188,0,230,36,230,188
+db 56,68,162,209,161,209,169,181
+db 30,33,36,72,88,148,168,180
+db 168,180,152,148,90,77,42,45
+db 128,64,70,43,53,41,178,84
 DATA_BLOCK_ATTRIBS:
 db 0
 db 7
@@ -693,6 +697,10 @@ db 68
 db 67
 db 68
 db 68
+db 69
+db 69
+db 69
+db 69
 DATA_BLOCK_PROPERTIES:
 db 0
 db 1
@@ -741,6 +749,10 @@ db 1
 db 0
 db 1
 db 1
+db 1
+db 1
+db 1
+db 1
 
 
 
@@ -774,6 +786,29 @@ db CHAR_A + LC, CHAR_C + LC, CHAR_E + LC, CHAR_SPACE, CHAR_E, CHAR_N + LC, CHAR_
 db CHAR_R + LC, CHAR_A + LC, CHAR_N + LC, CHAR_C + LC, CHAR_E + LC, 0
 ; Gems
 db 1,32,6,104,18,88,19,64,21,128,28,112
+
+
+ROOM_22:
+db 10,7,1,2,2,0,1,2,7,7,1,2,2,0,1,2,7,7,17,0,1,47
+db 30,0,1,48,1,49,1,50,24,0,4,2,1,0,1,49,2,47,1,0,4,2
+db 8,0,2,7,1,2,11,0,1,2,5,7,1,2,11,0,2,6,1,4,2,7
+db 1,2,23,0,1,2,2,7,2,6,1,4,2,6,1,4,23,0,1,4,2,1
+db 2,6,1,2,2,6,1,4,23,0,1,4,2,0,3,1,1,9,1,6,1,2
+db 8,7,1,2,5,0,1,2,8,7,1,2,6,0,10,6,1,2,5,7,1,2
+db 1,9,9,1,5,0,1,1,4,6,1,9,9,6,1,9,1,1,16,0,1,1
+db 1,6,1,9,1,1,1,0,8,6,1,9,19,0,1,1,3,0,8,1,44,0
+db 1,8,1,6,29,0,1,8,7,6,16,0,1,1,6,0,1,8,8,6,22,0
+db 1,8,11,6,1,9,1,1,3,0,2,1,3,0,2,1,7,0,1,8,5,6,$FF
+
+;Monsters
+db 0,0
+; Room name
+db CHAR_W, CHAR_A + LC, CHAR_L + LC, CHAR_K + LC, CHAR_I + LC, CHAR_N + LC, CHAR_G + LC
+db CHAR_I + LC, CHAR_N + LC, CHAR_SPACE, CHAR_T, CHAR_H + LC, CHAR_E + LC, CHAR_SPACE
+db CHAR_A, CHAR_I + LC, CHAR_R + LC, 0
+; Gems
+db 14,16,20,16,15,48,19,48,24,96,30,56
+
 
 ROOM_54:
 db 12,10,1,11,19,10,23,12,1,10,1,11,4,10,1,11,2,10,23,0,1,10
@@ -924,8 +959,8 @@ db 5,24,14,24,27,24,29,24,23,64,12,104
 
 
 DATA_ROOM_LIST:
-db ROOM_21>>8, ROOM_21, ROOM_54>>8, ROOM_54, ROOM_5>>8, ROOM_5, ROOM_6>>8, ROOM_6
-db ROOM_38>>8, ROOM_38, ROOM_62>>8, ROOM_62, ROOM_17>>8, ROOM_17, ROOM_17>>8, ROOM_17
+db ROOM_21>>8, ROOM_21, ROOM_22>>8, ROOM_22, ROOM_54>>8, ROOM_54, ROOM_17>>8, ROOM_17
+db ROOM_38>>8, ROOM_38, ROOM_62>>8, ROOM_62, ROOM_5>>8, ROOM_5, ROOM_6>>8, ROOM_6
 
  
 ;==============================================================
@@ -1356,7 +1391,7 @@ proc_climb_ladder:
 	and %00011111
 	ld c,a
 	ld a,(PLAYER_Y)
-	add a,17
+	add a,12
 	ld b,a
 	push bc
 	call proc_get_block_properties
