@@ -638,6 +638,22 @@ db BLACK_PAPER | RED_INK
 db SPRITE_SIZE_8X8, 1, 8
 db 36,153,255,165,189,219,129,66
  
+DATA_CAVEBUG:
+db 4
+db SPRITE_SIZE_24X8, 3, 8
+db 8,60,0,23,194,0,63,189,0,127,149,0,119,129,0,251
+db 213,0,213,106,0,170,188,0,4,30,0,11,255,0,31,192
+db 128,63,213,128,59,202,128,125,224,128,117,127,0,106,190,0
+db 2,15,0,5,240,128,15,239,64,31,229,64,29,224,64,62
+db 245,64,53,90,128,42,175,0,1,7,128,2,255,192,7,240
+db 32,15,245,96,14,242,160,31,120,32,29,95,192,26,175,128
+db 0,131,192,1,124,32,3,251,208,7,249,80,7,120,16,15
+db 189,80,13,86,160,10,171,192,0,65,224,0,191,240,1,252
+db 8,3,253,88,3,188,168,7,222,8,7,87,240,6,171,224
+db 0,32,240,0,95,8,0,254,244,1,254,84,1,222,4,3
+db 239,84,3,85,168,2,170,240,0,8,60,0,23,254,0,63
+db 129,0,127,171,0,119,149,0,251,193,0,234,254,0,213,124
+ 
 DATA_GEM:
 db %00111100
 db %01011010
@@ -957,11 +973,12 @@ db 16,0,1,3,3,0,1,6,1,0,1,6,1,0,1,3,2,0,5,6,16,0
 db 1,3,3,0,2,6,1,1,1,0,1,3,2,0,5,6,$FF
 
 ;Monsters
-db 4,0
+db 4,1
 db 72, 40, DATA_BAT, DATA_BAT>>8, 1
 db 48, 80, DATA_BAT, DATA_BAT>>8, 1
 db 176, 72, DATA_BAT, DATA_BAT>>8, 1
 db 176, 112, DATA_BAT, DATA_BAT>>8, 1
+db 150, 39, DATA_CAVEBUG, DATA_CAVEBUG>>8, 1
 
 ; Room name
 db CHAR_I, CHAR_C + LC, CHAR_E + LC, CHAR_SPACE, CHAR_P, CHAR_A + LC, CHAR_L + LC
@@ -1933,8 +1950,10 @@ proc_update_walkers:
 	ld a,(BUG_COUNT)
 	ld b,a
 	rla
+	ld c,a
 	rla
 	add a,b
+	add a,c
 	ld b,0
 	ld c,a
 	push ix
@@ -1952,7 +1971,8 @@ proc_update_walkers_loop:
 	jr nz, proc_update_walkers_2
 	inc a
 	ld (ix),a
-	add a,9
+	add a,(ix+MONSTER_WIDTH_OFFSET)
+	sub 7
 	jr proc_update_walkers_3 
 proc_update_walkers_2:
 	dec a
@@ -1967,7 +1987,8 @@ proc_update_walkers_3:
 	cp 0
 	jr z, proc_update_walkers_switch
 	ld a,(ix+1)
-	add a,9
+	add a,(ix+MONSTER_HEIGHT_OFFSET)
+	sub 7
 	ld b,a
 	call proc_get_block_index
 	ld a,(hl)
@@ -2645,6 +2666,9 @@ proc_load_map_loop4:
 	inc bc
 	inc bc
 	ld a,(bc)
+	rla
+	rla
+	rla
 	ld (de),a
 	inc bc
 	inc de
