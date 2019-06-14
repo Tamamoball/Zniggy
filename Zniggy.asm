@@ -58,6 +58,7 @@ BLOCK_LADDER_BIT            equ 1
 SCRATCH_ADDRESS1            equ $5CCB
 SCRATCH_ADDRESS2            equ $5CCD
 SCRATCH_ADDRESS3            equ $5CD3
+SCRATCH_ADDRESS4            equ $5CD5
 CURRENT_ROOM_ADDRESS        equ $5CCE
 CURRENT_ROOM_NUMBER         equ $5CD0
 CURRENT_ROOM_GEMS           equ $5CF0
@@ -79,6 +80,15 @@ PLAYER_GEMS                 equ $5D06
 PLAYER_ENTRY_X              equ $5D07
 PLAYER_ENTRY_Y              equ $5D08
 
+SPRITE_SIZE_8X8             equ 0
+SPRITE_SIZE_16X8            equ 8
+SPRITE_SIZE_8X16            equ 8
+SPRITE_SIZE_16X16           equ 24
+SPRITE_SIZE_24X8            equ 16
+SPRITE_LOOKUP_OFFSET        equ 1
+SPRITE_WIDTH_OFFSET         equ 2
+SPRITE_HEIGHT_OFFSET        equ 3
+SPRITE_DATA_SIZE            equ 4
 
 MONSTER_START               equ $6000
 MONSTER_POS                 equ $6000
@@ -86,7 +96,15 @@ MONSTER_X                   equ $6000
 MONSTER_Y                   equ $6001
 MONSTER_SPRITE              equ $6002
 MONSTER_DIR                 equ $6004
-MONSTER_SIZE                equ 5
+MONSTER_SIZE                equ 7
+
+MONSTER_POS_OFFSET          equ 0
+MONSTER_X_OFFSET            equ 0
+MONSTER_Y_OFFSET            equ 1
+MONSTER_SPRITE_OFFSET       equ 2
+MONSTER_DIR_OFFSET          equ 4
+MONSTER_WIDTH_OFFSET        equ 5
+MONSTER_HEIGHT_OFFSET       equ 6
 
 ROOM_WIDTH                  equ 32
 ROOM_HEIGHT                 equ 18
@@ -135,6 +153,12 @@ LC equ 32
 ;==============================================================
 ; Data
 ;==============================================================
+SPRITE_LOOKUP:
+db 0,8,16,24,32,48,56,64
+db 0,16,32,48,64,80,96,128
+db 0,24,48,72,96,120,144,168
+db 0,32,64,96,128,160,192,224
+
 SWAP_BIT:
 db 0
 
@@ -239,6 +263,7 @@ DATA_TILE_PIXELS:
 DATA_SPRITES:
 DATA_ZIGGY_RIGHT:
 db BLACK_PAPER | PURPLE_INK | BRIGHT
+db SPRITE_SIZE_16X16, 2, 16
 ; zniggy_0
 db %00011000>>0, %00011000<<8
 db %00111100>>0, %00111100<<8
@@ -389,6 +414,7 @@ db %01011110>>7, %01011110<<1
 
 DATA_ZIGGY_LEFT:
 db BLACK_PAPER | PURPLE_INK | BRIGHT
+db SPRITE_SIZE_16X16, 2, 16
 ; zniggy_0
 db %00011000>>0, %00011000<<8
 db %00111100>>0, %00111100<<8
@@ -557,6 +583,7 @@ db %00000001, %10000000
  
 DATA_BOTTLE:
 db 68
+db SPRITE_SIZE_16X16, 2, 16
 db 48,0,48,0,48,0,48,0,120,0,120,0,252,0,252,0
 db 4,0,244,0,244,0,4,0,252,0,252,0,252,0,252,0
 db 3,0,3,0,3,0,6,0,30,0,30,0,63,0,63,0
@@ -576,6 +603,7 @@ db 0,64,0,94,0,94,0,64,0,127,0,127,0,63,0,62
  
 DATA_LOVEMAN:
 db 67
+db SPRITE_SIZE_16X16, 2, 16
 db 24,0,43,0,61,0,31,0,51,0,198,0,4,0,12,0
 db 28,0,60,0,28,0,12,0,28,0,28,0,22,0,18,0
 db 24,0,43,0,61,0,31,0,51,0,66,0,2,0,6,0
@@ -595,13 +623,20 @@ db 0,28,0,60,0,28,0,12,0,28,0,28,0,22,0,18
  
 DATA_SNAKE:
 db 68
+db SPRITE_SIZE_16X16, 2, 16
 db 7,192,15,32,31,56,31,248,16,0,16,0,15,240,0,8
 db 0,8,15,240,16,0,16,0,15,240,0,8,0,8,15,240
  
 DATA_GHOST:
 db 69
+db SPRITE_SIZE_16X16, 2, 16
 db 0,0,96,6,56,12,28,216,15,240,15,224,11,160,25,48
 db 31,240,62,248,61,120,63,248,63,248,63,120,51,104,0,0
+ 
+DATA_BAT:
+db BLACK_PAPER | RED_INK
+db SPRITE_SIZE_8X8, 1, 8
+db 36,153,255,165,189,219,129,66
  
 DATA_GEM:
 db %00111100
@@ -922,7 +957,12 @@ db 16,0,1,3,3,0,1,6,1,0,1,6,1,0,1,3,2,0,5,6,16,0
 db 1,3,3,0,2,6,1,1,1,0,1,3,2,0,5,6,$FF
 
 ;Monsters
-db 0,0
+db 4,0
+db 72, 40, DATA_BAT, DATA_BAT>>8, 1
+db 48, 80, DATA_BAT, DATA_BAT>>8, 1
+db 176, 72, DATA_BAT, DATA_BAT>>8, 1
+db 176, 112, DATA_BAT, DATA_BAT>>8, 1
+
 ; Room name
 db CHAR_I, CHAR_C + LC, CHAR_E + LC, CHAR_SPACE, CHAR_P, CHAR_A + LC, CHAR_L + LC
 db CHAR_A + LC, CHAR_C + LC, CHAR_E + LC, CHAR_SPACE, CHAR_E, CHAR_N + LC, CHAR_T + LC
@@ -1847,7 +1887,8 @@ proc_update_bugs_loop:
 	ld a,(ix+1)
 	inc a
 	ld (ix+1),a
-	add a,17
+	add a,(ix+MONSTER_HEIGHT_OFFSET)
+	inc a
 	ld b,a
 	jr proc_update_bugs3
 proc_update_bugs2:
@@ -1874,7 +1915,7 @@ proc_update_bugs4:
 	sub b
 	ld (ix+4),a
 proc_update_bugs_loop_end
-	ld de,5
+	ld de,MONSTER_SIZE
 	add ix,de
 	pop af
 	dec a
@@ -1963,20 +2004,27 @@ proc_draw_sprite:
 	
 ;Get sprite address from x value
 	ld d,(ix)
-	inc ix
 	
 	ld a,c
-	rla
-	rla
-	rla
-	rla
-	rla
-	and %11100000
-	push bc
-	ld b,0
-	ld c,a
-	add ix,bc ;ix now contains the sprite address
-	pop bc
+	exx
+	ld b,(ix+SPRITE_HEIGHT_OFFSET)
+	and %00000111
+	ld h,SPRITE_LOOKUP>>8
+	add a,(ix+SPRITE_LOOKUP_OFFSET)
+	ld l,a
+	ld d,0
+	ld e,(hl)
+	ld a,(ix+SPRITE_WIDTH_OFFSET)
+	ld (SCRATCH_ADDRESS4),a
+	add ix,de ;ix now contains the sprite address	
+	ld a,b
+	rra
+	rra
+	rra
+	inc a
+	and %00011111
+	ex af,af'
+	exx
 	ld a,c
 	rra
 	rra
@@ -1995,35 +2043,50 @@ proc_draw_sprite:
 	call proc_get_screen_attribute_address
 	pop de
 	ld bc,32
-	ld a,d
-	ld (hl),a
+	ex af,af'
+	ld e,a
+proc_draw_sprite_attrib_loop:
+	ld a,(SCRATCH_ADDRESS4)
+	push hl
+proc_draw_sprite_attrib_loop2:
+	ld (hl),d
 	inc hl
-	ld (hl),a
+	dec a
+	jr nz,proc_draw_sprite_attrib_loop2
+	pop hl
 	add hl,bc
-	ld (hl),a
-	dec hl
-	ld (hl),a
-	add hl,bc
-	ld (hl),a
-	inc hl
-	ld (hl),a
+	dec e
+	jr nz,proc_draw_sprite_attrib_loop
 	pop bc
 	
-	ld d,16
+
+	ld (SCRATCH_ADDRESS3),ix
+	ld de,(SCRATCH_ADDRESS3)
+	ld hl,SPRITE_DATA_SIZE
+	add hl,de
+	ex de,hl
+	exx
 proc_draw_sprite_loop:
+	exx
 	push de
 	call proc_get_screen_pixel_address
-	ld a,(ix)
+	pop de
+	exx
+	ld a,(SCRATCH_ADDRESS4)
+	ld c,a
+proc_draw_sprite_loop2:
+	exx
+	ld a,(de)
 	ld (hl),a
 	inc hl
-	inc ix
-	ld a,(ix)
-	ld (hl),a	
-	inc hl
-	inc ix
-	pop de
+	inc de
+	exx
+	dec c
+	jr nz, proc_draw_sprite_loop2
+	exx
 	inc b
-	dec d
+	exx
+	dec b
 	jr nz, proc_draw_sprite_loop
 ret
 ENDP
@@ -2253,7 +2316,8 @@ proc_redraw_blocks_loop:
 	cp 0
 	jr z,proc_redraw_blocks2
 	ld a,b
-	add a,17
+	add a,(iy+MONSTER_HEIGHT_OFFSET)
+	inc a
 	ld b,a
 proc_redraw_blocks2:
 	push bc
@@ -2304,7 +2368,7 @@ proc_redraw_blocks_loop2:
 	call proc_draw_block
 proc_redraw_blocks_loop2_end:
 	pop bc
-	ld de, 5
+	ld de,MONSTER_SIZE
 	add iy,de
 	dec b
 	jr nz,proc_redraw_blocks_loop2
@@ -2556,16 +2620,41 @@ proc_load_map_loop2_end:
 	ld (WALKER_COUNT),a
 	add a,b
 	
-	ld b,a
-	rla
-	rla
-	add a,b
-	ld b,0
-	ld c,a
-	inc c
 	inc hl
+	cp 0
+	jr z,proc_load_map_loop4_end
+proc_load_map_loop4:
+	ex af,af'
+	ld bc,2
 	ldir
-	dec hl
+	ld a,(hl)
+	ld (de),a
+	ld c,a
+	inc hl
+	inc de
+	ld a,(hl)
+	ld (de),a
+	ld b,a
+	inc hl
+	inc de
+	ld a,(hl)
+	ld (de),a
+	inc hl
+	inc de
+	
+	inc bc
+	inc bc
+	ld a,(bc)
+	ld (de),a
+	inc bc
+	inc de
+	ld a,(bc)
+	ld (de),a
+	inc de
+	ex af,af'
+	dec a
+	jr nz,proc_load_map_loop4
+proc_load_map_loop4_end:
 	ld bc,$B001
 	call proc_draw_string
 	
