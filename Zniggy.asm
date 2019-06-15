@@ -90,12 +90,12 @@ SPRITE_WIDTH_OFFSET         equ 2
 SPRITE_HEIGHT_OFFSET        equ 3
 SPRITE_DATA_SIZE            equ 4
 
-MONSTER_START               equ $6000
-MONSTER_POS                 equ $6000
-MONSTER_X                   equ $6000
-MONSTER_Y                   equ $6001
-MONSTER_SPRITE              equ $6002
-MONSTER_DIR                 equ $6004
+MONSTER_START               equ $6100
+MONSTER_POS                 equ $6100
+MONSTER_X                   equ $6100
+MONSTER_Y                   equ $6101
+MONSTER_SPRITE              equ $6102
+MONSTER_DIR                 equ $6104
 MONSTER_SIZE                equ 8
 
 MONSTER_POS_OFFSET          equ 0
@@ -665,6 +665,53 @@ db RED_INK | BRIGHT
 db SPRITE_SIZE_8X8, 1, 8
 db 60,126,255,129,129,255,126,60
 
+DATA_SNOWMAN:
+db 71
+db SPRITE_SIZE_16X16, 2, 16
+db 1,192,2,160,3,224,130,33,65,199,64,1,177,194,15,252
+db 3,96,3,224,7,112,15,248,15,120,15,248,15,120,7,240
+
+DATA_BADCRYSTAL:
+db 66
+db SPRITE_SIZE_16X16, 2, 16
+db 60,0,126,0,195,0,219,0,195,0,126,0,60,0,16,0
+db 112,0,192,0,128,0,190,0,235,0,186,0,128,0,128,0
+db 0,0,15,0,31,128,48,192,54,192,48,192,31,128,15,0
+db 4,0,60,0,96,0,124,0,119,0,93,128,1,0,1,0
+db 0,0,15,0,31,128,48,192,57,192,48,192,31,128,15,0
+db 4,0,28,0,48,0,47,128,58,192,46,128,32,0,32,0
+db 15,0,31,128,48,192,57,192,48,192,31,128,15,0,4,0
+db 14,0,24,0,16,0,31,0,21,192,23,96,0,64,0,64
+db 3,192,7,224,12,48,13,176,12,48,7,224,3,192,1,0
+db 7,0,12,0,8,0,11,224,14,176,11,160,8,0,8,0
+db 0,0,0,240,1,248,3,12,3,108,3,12,1,248,0,240
+db 0,64,3,192,6,0,7,192,7,112,5,216,0,16,0,16
+db 0,0,0,240,1,248,3,12,3,156,3,12,1,248,0,240
+db 0,64,1,192,3,0,2,248,3,172,2,232,2,0,2,0
+db 0,240,1,248,3,12,3,156,3,12,1,248,0,240,0,64
+db 0,224,1,128,1,0,1,240,1,92,1,118,0,4,0,4
+
+DATA_PIGEON:
+db 7
+db SPRITE_SIZE_16X16, 2, 16
+db 0,0,0,0,112,0,120,0,220,0,252,3,60,15,31,255
+db 29,254,30,60,15,248,15,240,0,32,0,0,0,0,0,0
+
+DATA_WATER:
+db 69
+db SPRITE_SIZE_8X8, 1, 8
+db 24,24,52,52,122,90,102,60
+
+DATA_SLUDGE:
+db 4
+db SPRITE_SIZE_8X8, 1, 8
+db 24,24,52,52,122,90,102,60
+
+DATA_BBALL:
+db 70
+db SPRITE_SIZE_8X8, 1, 8
+db 0,60,126,255,255,126,60,0
+
 DATA_GEM:
 db %00111100
 db %01011010
@@ -676,8 +723,6 @@ db %00011000
 db %00011000
 
 DATA_BLOCK_SPRITES:
-; TODO: FIX ADDRESSING BUG WRITING TO THIS MEMORY
-db 0,0,0,0
 BLOCK_0:
 db 0,0,0,0,0,0,0,0
 db 255,254,180,164,32,0,0,0
@@ -771,6 +816,10 @@ db 181,153,173,181,153,173,181,153
 db 69,42,17,136,68,42,17,168
 db 102,204,153,51,102,204,153,51
 db 102,204,153,51,102,204,153,51
+db 0,0,85,85,85,85,255,0
+db 255,129,129,129,129,129,129,255
+db 3,3,3,3,3,3,3,3
+db 128,254,170,84,170,84,40,16
 DATA_BLOCK_ATTRIBS:
 db 0
 db 7
@@ -863,6 +912,10 @@ db 70
 db 102
 db 83
 db 71
+db 71
+db 65
+db 68
+db 69
 db 71
 DATA_BLOCK_PROPERTIES:
 db 0
@@ -957,6 +1010,12 @@ db 2
 db 1
 db 0
 db 1
+db 1
+db 0
+db 2
+db 1
+
+
 
 
 
@@ -1012,7 +1071,9 @@ db 1,8,1,6,29,0,1,8,7,6,16,0,1,1,6,0,1,8,8,6,22,0
 db 1,8,11,6,1,9,1,1,3,0,2,1,3,0,2,1,7,0,1,8,5,6,$FF
 
 ;Monsters
-db 0,0
+db 2,0
+db 56, 10, DATA_SNOWMAN, DATA_SNOWMAN>>8, 0
+db 208, 10, DATA_SNOWMAN, DATA_SNOWMAN>>8, 0
 ; Room name
 db CHAR_W, CHAR_A + LC, CHAR_L + LC, CHAR_K + LC, CHAR_I + LC, CHAR_N + LC, CHAR_G + LC
 db CHAR_SPACE, CHAR_I + LC, CHAR_N + LC, CHAR_SPACE, CHAR_T, CHAR_H + LC, CHAR_E + LC, CHAR_SPACE
@@ -1063,7 +1124,13 @@ db 6,19,10,0,1,15,1,0,1,15,4,0,2,11,1,19,4,0,2,11,6,19
 db 10,0,1,16,1,12,1,17,4,0,2,11,1,19,4,0,2,11,34,19,$FF
 
 ;Monsters
-db 0,0
+db 5,1
+db 168, 56, DATA_BAT, DATA_BAT>>8, 1
+db 176, 40, DATA_BAT, DATA_BAT>>8, 0
+db 192, 112, DATA_BAT, DATA_BAT>>8, 0
+db 120, 42, DATA_WATER, DATA_WATER>>8, 42
+db 120, 82, DATA_WATER, DATA_WATER>>8, 42
+db 63, 127, DATA_CAVEBUG, DATA_CAVEBUG>>8, 0
 ; Room name
 db CHAR_T, CHAR_H + LC, CHAR_E + LC, 255
 db CHAR_H, CHAR_O + LC, CHAR_L + LC, CHAR_E + LC, 0
@@ -1205,7 +1272,9 @@ db 1,54,1,53,1,54,1,53,1,69,2,70,1,54,1,53,1,54,1,53,1,54
 db 1,53,1,69,1,70,1,53,$FF
 
 ;Monsters
-db 0,0
+db 0,2
+db 27, 95, DATA_BADCRYSTAL, DATA_BADCRYSTAL>>8, 1
+db 154, 95, DATA_BADCRYSTAL, DATA_BADCRYSTAL>>8, 1
 ; Room name
 db CHAR_C, CHAR_R + LC, CHAR_Y + LC, CHAR_S + LC, CHAR_T + LC, CHAR_A + LC, CHAR_L + LC
 db CHAR_SPACE, CHAR_F, CHAR_O + LC, CHAR_R + LC, CHAR_E + LC, CHAR_S + LC, CHAR_T + LC, 0
@@ -1229,7 +1298,10 @@ db 1,3,1,6,5,0,1,1,1,3,3,0,1,6,19,0,1,3,1,6,6,0
 db 1,3,3,0,1,6,17,75,4,6,6,0,1,3,3,0,1,6,$FF
 
 ;Monsters
-db 0,0
+db 3,0
+db 16, 18, DATA_SLUDGE, DATA_SLUDGE>>8, 18
+db 48, 50, DATA_SLUDGE, DATA_SLUDGE>>8, 50
+db 80, 10, DATA_SLUDGE, DATA_SLUDGE>>8, 10
 ; Room name
 db CHAR_S, CHAR_E + LC, CHAR_W + LC, CHAR_E + LC, CHAR_R + LC, CHAR_S + LC, 0
 ; Gems
@@ -1246,7 +1318,10 @@ db 13,0,1,62,10,0,1,62,20,0,1,62,5,0,3,77,26,0,6,77,26,0
 db 6,77,25,79,1,80,6,77,26,78,99,77,$FF
 
 ;Monsters
-db 0,0
+db 3,0
+db 56, 86, DATA_PIGEON, DATA_PIGEON>>8, 1
+db 128, 48, DATA_PIGEON, DATA_PIGEON>>8, 0
+db 192, 80, DATA_PIGEON, DATA_PIGEON>>8, 1
 ; Room name
 db CHAR_H, CHAR_A + LC, CHAR_L + LC, CHAR_L + LC, CHAR_SPACE, CHAR_O + LC, CHAR_F + LC
 db CHAR_SPACE, CHAR_T, CHAR_H + LC, CHAR_E + LC, CHAR_SPACE, CHAR_S, CHAR_Q + LC
@@ -1301,17 +1376,75 @@ db 84, 15, DATA_LOVEMAN, DATA_LOVEMAN>>8, 1
 db 163, 119, DATA_LOVEMAN, DATA_LOVEMAN>>8, 1
 ; Room name
 db CHAR_L, CHAR_O + LC, CHAR_V + LC, CHAR_E + LC, CHAR_SPACE
-db CHAR_M, CHAR_O + LC, CHAR_T + LC, CHAR_E + LC, CHAR_T + LC, 0
+db CHAR_M, CHAR_O + LC, CHAR_T + LC, CHAR_E + LC, CHAR_L + LC, 0
 
 ; Gems
 db 4,24,2,88,8,56,21,88,30,56,30,88
+
+ROOM_1:
+db 35,10,29,0,3,10,29,0,3,10,9,0,4,92,1,21,1,92,14,0,3,10
+db 1,93,2,0,2,93,2,0,2,93,2,0,2,93,1,21,1,0,2,93,2,0
+db 2,93,2,0,2,93,2,0,2,93,3,10,1,93,2,0,2,93,2,0,2,93
+db 2,0,2,93,1,21,1,0,2,93,2,0,2,93,2,0,2,93,2,0,2,93
+db 3,10,9,0,1,94,1,95,2,0,1,21,12,0,1,94,1,95,1,0,3,10
+db 9,0,1,94,3,0,1,21,12,0,1,94,2,0,3,10,9,0,1,94,3,0
+db 1,21,12,0,1,94,2,0,3,10,5,92,1,21,3,92,1,94,1,0,4,92
+db 11,0,1,94,2,0,3,10,1,93,2,0,2,93,1,21,1,0,2,93,1,94
+db 1,0,2,93,2,0,2,93,2,0,2,93,2,0,2,93,1,0,1,94,2,0
+db 3,10,1,93,2,0,2,93,1,21,1,0,2,93,1,94,1,0,2,93,2,0
+db 2,93,2,0,2,93,2,0,2,93,1,0,1,94,2,0,3,10,2,0,1,94
+db 1,95,1,0,1,21,3,0,1,94,10,0,1,94,1,95,4,0,1,94,2,0
+db 3,10,1,95,1,0,1,94,2,0,1,21,3,0,1,94,10,0,1,94,5,0
+db 1,94,2,0,2,10,3,0,1,94,2,0,1,21,3,0,1,94,10,0,1,94
+db 5,0,1,94,2,0,2,10,3,0,1,94,2,0,1,21,3,0,1,94,10,0
+db 1,94,5,0,1,94,2,0,2,10,3,0,1,94,2,0,1,21,3,0,1,94
+db 10,0,1,94,5,0,1,94,2,0,32,10,$FF
+;Monsters
+db 4,0
+db 104, 96, DATA_BBALL, DATA_BBALL>>8, 1
+db 240, 88, DATA_BBALL, DATA_BBALL>>8, 1
+db 48, 112, DATA_BBALL, DATA_BBALL>>8, 1
+db 192, 120, DATA_BBALL, DATA_BBALL>>8, 1
+; Room name
+db CHAR_B, CHAR_A + LC, CHAR_C + LC, CHAR_K + LC, CHAR_A + LC
+db CHAR_L + LC, CHAR_L + LC, CHAR_E + LC, CHAR_Y + LC, CHAR_SPACE
+db CHAR_B, CHAR_A + LC, CHAR_L + LC, CHAR_L + LC, 0
+; Gems
+db 17,16,13,64,27,48,25,96,2,120,17,16
+
+ROOM_50:
+db 10,0,1,96,6,0,1,96,4,0,1,96,19,0,1,96,6,0,1,96,4,0
+db 1,96,19,0,1,96,6,0,1,96,4,0,1,96,19,0,1,96,6,0,1,96
+db 4,0,1,96,14,0,1,97,4,0,1,96,6,0,1,96,4,0,1,96,16,0
+db 3,97,1,96,6,97,1,96,4,97,1,96,1,97,1,0,1,96,3,0,2,97
+db 2,0,2,97,7,0,1,96,4,0,1,98,1,0,1,96,4,0,1,96,2,0
+db 1,96,1,97,15,0,1,96,4,0,1,98,1,0,1,96,4,0,1,96,2,0
+db 1,96,16,0,1,96,4,0,1,98,1,0,1,96,4,0,1,96,2,0,1,96
+db 13,0,1,96,2,0,1,96,4,0,1,98,1,0,1,96,1,0,5,97,1,0
+db 1,96,13,0,1,96,4,97,3,0,1,98,1,0,1,96,3,0,1,98,3,0
+db 1,96,13,0,1,96,2,0,1,98,3,0,1,97,1,98,1,0,1,96,3,0
+db 1,98,3,0,1,97,13,0,1,96,2,0,1,98,4,0,1,98,1,0,1,96
+db 3,0,1,98,10,0,4,97,3,0,1,96,2,0,1,98,4,0,1,98,1,0
+db 1,96,3,0,1,98,6,0,4,97,1,0,1,98,5,0,1,96,2,0,1,98
+db 4,0,1,98,1,0,8,97,5,0,1,98,2,0,1,98,3,0,9,97,1,0
+db 1,98,3,0,1,98,1,0,1,98,8,0,1,98,2,0,1,98,8,0,1,98
+db 4,0,1,98,3,0,1,98,1,0,1,98,8,0,1,98,1,0,32,79,$FF
+;Monsters
+db 0,0
+; Room name
+db CHAR_C, CHAR_L + LC, CHAR_O + LC, CHAR_S + LC, CHAR_I + LC, CHAR_N + LC, CHAR_G + LC
+db CHAR_SPACE, CHAR_T, CHAR_I + LC, CHAR_M + LC, CHAR_E + LC, CHAR_SPACE
+db CHAR_A + LC, CHAR_T + LC, CHAR_SPACE, CHAR_T + LC, CHAR_H + LC, CHAR_E + LC
+db CHAR_SPACE, CHAR_M, CHAR_A + LC, CHAR_L + LC, CHAR_L + LC, 0
+; Gems
+db 17,16,13,64,27,48,25,96,2,120,17,16
 
 
 DATA_ROOM_LIST:
 db ROOM_21>>8, ROOM_21, ROOM_22>>8, ROOM_22, ROOM_54>>8, ROOM_54, ROOM_17>>8, ROOM_17
 db ROOM_5>>8, ROOM_5, ROOM_6>>8, ROOM_6, ROOM_5>>8, ROOM_5, ROOM_6>>8, ROOM_6
 db ROOM_29>>8, ROOM_29, ROOM_38>>8, ROOM_38, ROOM_62>>8, ROOM_62, ROOM_25>>8, ROOM_25
-db ROOM_60>>8, ROOM_60, ROOM_58>>8, ROOM_58, ROOM_58>>8, ROOM_58, ROOM_40>>8, ROOM_40
+db ROOM_60>>8, ROOM_60, ROOM_1>>8, ROOM_1, ROOM_58>>8, ROOM_58, ROOM_40>>8, ROOM_40
 
  
 ;==============================================================
@@ -1921,7 +2054,7 @@ proc_update_bugs_loop:
 	and %00011111
 	ld c,a
 	ld a,(ix+4)
-	cp 0
+	bit 0,a
 	jr nz, proc_update_bugs2
 	ld a,(ix+1)
 	inc a
@@ -1949,10 +2082,33 @@ proc_update_bugs3:
 	jr proc_update_bugs_loop_end
 proc_update_bugs4:
 	ld a,(ix+4)
+	cp 2
+	jr nc, proc_update_bugs_reset
 	ld b,a
 	ld a,1
 	sub b
 	ld (ix+4),a
+	jr proc_update_bugs_loop_end
+proc_update_bugs_reset:
+	ld a,(ix+MONSTER_Y_OFFSET)
+	rra 
+	rra 
+	rra
+	and %00011111
+	ld b,a
+	ld a,(ix+MONSTER_X_OFFSET)
+	rra 
+	rra 
+	rra
+	and %00011111
+	ld c,a
+	push bc
+	call proc_draw_block
+	pop bc
+	inc b
+	call proc_draw_block
+	ld a,(ix+4)
+	ld (ix+1),a
 proc_update_bugs_loop_end
 	ld de,MONSTER_SIZE
 	add ix,de
@@ -2196,7 +2352,7 @@ proc_get_block_index:
 	rl b
 	add a,c
 	ld c,a
-	xor a
+	ld a,0
 	adc a,b
 	add hl,bc
 ret
@@ -2353,7 +2509,7 @@ proc_redraw_blocks_loop:
 	dec a
 	ld b,a
 	ld a,(iy+4)
-	cp 0
+	bit 0,a
 	jr z,proc_redraw_blocks2
 	ld a,b
 	add a,(iy+MONSTER_HEIGHT_OFFSET)
@@ -2794,9 +2950,12 @@ start_reset_loop:
 	dec b
 	jr nz,start_reset_loop
 	
+
 	call proc_load_map
 loopyboy:
+	ei
 	halt
+	di
 	call proc_redraw_blocks	
 	call proc_update_player
 	call proc_draw_sprites
@@ -2808,6 +2967,18 @@ loopyboy:
 	ld a,(SWAP_BIT)
 	xor %00000001
 	ld (SWAP_BIT),a
+	
+	;The code below gives a reliable way to prevent flickering at the cost of a frame
+	;ei
+	;halt
+	;di
+	;ld bc,$6A0
+;gameloopstall:
+	;dec bc
+	;ld a,0
+	;cp b
+	;jr nz,gameloopstall
+
 	
 	ld a,(PLAYER_LIVES)
 	cp CHAR_ZERO-1
