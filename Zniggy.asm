@@ -96,15 +96,16 @@ MONSTER_X                   equ $6000
 MONSTER_Y                   equ $6001
 MONSTER_SPRITE              equ $6002
 MONSTER_DIR                 equ $6004
-MONSTER_SIZE                equ 7
+MONSTER_SIZE                equ 8
 
 MONSTER_POS_OFFSET          equ 0
 MONSTER_X_OFFSET            equ 0
 MONSTER_Y_OFFSET            equ 1
 MONSTER_SPRITE_OFFSET       equ 2
 MONSTER_DIR_OFFSET          equ 4
-MONSTER_WIDTH_OFFSET        equ 5
-MONSTER_HEIGHT_OFFSET       equ 6
+MONSTER_WIDTH_OFFSET        equ 6
+MONSTER_BWIDTH_OFFSET       equ 5
+MONSTER_HEIGHT_OFFSET       equ 7
 
 ROOM_WIDTH                  equ 32
 ROOM_HEIGHT                 equ 18
@@ -1948,12 +1949,9 @@ PROC
 proc_update_walkers:
 ;-------------------------------------------------------------
 	ld a,(BUG_COUNT)
-	ld b,a
 	rla
-	ld c,a
 	rla
-	add a,b
-	add a,c
+	rla
 	ld b,0
 	ld c,a
 	push ix
@@ -2347,12 +2345,14 @@ proc_redraw_blocks2:
 	ld (CURRENT_SPRITE),hl
 	ld ix,(CURRENT_SPRITE)
 	call proc_get_screen_pixel_address
+	ld d,(iy+MONSTER_BWIDTH_OFFSET)
+proc_redraw_blocks2_inner:
 	ld a,(ix)
 	ld (hl),a
 	inc ix
 	inc hl
-	ld a,(ix)
-	ld (hl),a
+	dec d
+	jr nz,proc_redraw_blocks2_inner
 	ld de,MONSTER_SIZE
 	add iy,de
 	pop bc
@@ -2666,6 +2666,8 @@ proc_load_map_loop4:
 	inc bc
 	inc bc
 	ld a,(bc)
+	ld (de),a
+	inc de
 	rla
 	rla
 	rla
