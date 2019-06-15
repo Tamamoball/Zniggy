@@ -654,7 +654,17 @@ db 8,3,253,88,3,188,168,7,222,8,7,87,240,6,171,224
 db 0,32,240,0,95,8,0,254,244,1,254,84,1,222,4,3
 db 239,84,3,85,168,2,170,240,0,8,60,0,23,254,0,63
 db 129,0,127,171,0,119,149,0,251,193,0,234,254,0,213,124
- 
+
+DATA_FAWKES:
+db WHITE_INK | BRIGHT
+db SPRITE_SIZE_8X8, 1, 8
+db 126,255,153,255,165,90,36,24
+
+DATA_STOPSIGN:
+db RED_INK | BRIGHT
+db SPRITE_SIZE_8X8, 1, 8
+db 60,126,255,129,129,255,126,60
+
 DATA_GEM:
 db %00111100
 db %01011010
@@ -1095,7 +1105,10 @@ db 3,0,6,29,4,0,1,34,4,0,1,34,3,0,10,29,3,0,6,29,3,0
 db 10,29,$FF 
 
 ;Monsters
-db 0,0
+db 3,0
+db 24, 80, DATA_FAWKES, DATA_FAWKES>>8, 1
+db 128, 80, DATA_FAWKES, DATA_FAWKES>>8, 0
+db 200, 120, DATA_FAWKES, DATA_FAWKES>>8, 1
 ; Room name
 db CHAR_P, CHAR_R + LC, CHAR_I + LC, CHAR_N + LC, CHAR_C + LC, CHAR_E + LC, CHAR_SPACE
 db CHAR_Z, CHAR_N + LC, CHAR_E + LC, CHAR_D + LC, CHAR_W + LC, CHAR_A + LC, CHAR_R + LC
@@ -1116,7 +1129,13 @@ db 6,29,4,0,1,37,1,38,1,39,6,0,1,37,1,38,1,39,2,0,1,37
 db 1,38,1,39,4,0,39,29,$FF 
 
 ;Monsters
-db 0,0
+db 5,0
+db 32, 80, DATA_STOPSIGN, DATA_STOPSIGN>>8, 1
+db 176, 80, DATA_STOPSIGN, DATA_STOPSIGN>>8, 0
+db 224, 72, DATA_STOPSIGN, DATA_STOPSIGN>>8, 1
+db 72, 120, DATA_STOPSIGN, DATA_STOPSIGN>>8, 0
+db 136, 120, DATA_STOPSIGN, DATA_STOPSIGN>>8, 1
+
 ; Room name
 db CHAR_M, CHAR_O + LC, CHAR_T + LC, CHAR_O + LC, CHAR_R + LC, CHAR_W + LC, CHAR_A + LC
 db CHAR_Y + LC, CHAR_SPACE, CHAR_T, CHAR_R + LC, CHAR_A + LC, CHAR_F + LC, CHAR_F + LC
@@ -1682,13 +1701,15 @@ proc_check_player_death_loop:
 	ld a,(ix)
 	cp c
 	jr nc,proc_check_player_death_end
-	add a,14
+	add a,(ix+MONSTER_WIDTH_OFFSET)
+	sub 4
 	cp e
 	jr c,proc_check_player_death_end
 	ld a,(ix+1)
 	cp b
 	jr nc,proc_check_player_death_end
-	add a,8
+	add a,(ix+MONSTER_HEIGHT_OFFSET)
+	sub 4
 	cp d
 	jr c,proc_check_player_death_end
 	ld a,(PLAYER_LIVES)
