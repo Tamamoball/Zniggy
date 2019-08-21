@@ -3181,6 +3181,7 @@ PROC
 proc_move_player_right:
 ;-------------------------------------------------------------
 	inc b
+	inc b
 	inc d
 	ld hl, DATA_ZIGGY_RIGHT
 	ld (PLAYER_SPRITE), hl
@@ -3191,6 +3192,7 @@ ENDP
 PROC
 proc_move_player_left:
 ;-------------------------------------------------------------
+	dec b
 	dec b
 	inc d
 	ld hl, DATA_ZIGGY_LEFT
@@ -3218,19 +3220,25 @@ proc_move_player_out_walls:
 	pop bc
 	push bc
 	ld a,b
-	sub 8
+	sub 9
 	ld b,a
 	call proc_get_block_properties
 	bit BLOCK_COLLISION_BIT,a
 	jr z, proc_move_player_out_walls2
 proc_move_player_out_walls_right:
 	ld a,(PLAYER_X)
-	add a,1
+	add a,2
 	ld (PLAYER_X),a
 proc_move_player_out_walls2:
 	pop bc
 	push bc
-	inc c
+	ld a,(PLAYER_X)
+	add a,7
+	rra
+	rra
+	rra
+	and %00011111
+	ld c,a
 	push bc
 	call proc_get_block_properties
 	pop bc
@@ -3245,11 +3253,12 @@ proc_move_player_out_walls2:
 proc_move_player_out_walls_left:
 	ld a,(PLAYER_X)
 	dec a
+	dec a
 	ld (PLAYER_X),a
 proc_move_player_out_walls3:
 	pop bc
 	ld a,b
-	sub 12
+	sub 8
 	ret c
 	ld b,a
 	call proc_get_block_properties
@@ -3474,7 +3483,7 @@ proc_climb_ladder_on:
 	pop bc
 	jr nz, proc_climb_ladder2
 	ld a,b
-	sub 18
+	sub 8
 	ld b,a
 	call proc_get_block_properties
 	bit BLOCK_COLLISION_BIT,a
@@ -4526,7 +4535,7 @@ start:
 	ld hl, DATA_ZIGGY_RIGHT
 	ld (PLAYER_SPRITE), hl
 	ld hl, CURRENT_ROOM_NUMBER
-	ld (hl),35
+	ld (hl),55
 	ld a,CHAR_ZERO+3
 	ld (PLAYER_LIVES),a
 	
