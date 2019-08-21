@@ -3459,7 +3459,7 @@ proc_climb_ladder:
 	and %00011111
 	ld c,a
 	ld a,(PLAYER_Y)
-	add a,12
+	add a,16
 	ld b,a
 	push bc
 	call proc_get_block_properties
@@ -3473,9 +3473,12 @@ proc_climb_ladder:
 	bit BLOCK_LADDER_BIT,a
 	ret z
 proc_climb_ladder_on:
+	ld a,(PLAYER_VEL)
+	sub 248
+	jr nc, proc_climb_ladder_reset_vel_end
 	ld a,0
 	ld (PLAYER_VEL),a
-	
+proc_climb_ladder_reset_vel_end:	
 	push bc
 	ld bc,&FBFE
 	in a,(c)
@@ -3488,8 +3491,9 @@ proc_climb_ladder_on:
 	call proc_get_block_properties
 	bit BLOCK_COLLISION_BIT,a
 	ret nz
-	ld a,254
-	ld (PLAYER_VEL),a
+	;ld a,(PLAYER_VEL)
+	;add a,254
+	;ld (PLAYER_VEL),a
 	ret
 proc_climb_ladder2:
 	ld a,b
@@ -3559,7 +3563,11 @@ proc_update_player_cap:
 	pop af
 	ld (SCRATCH_ADDRESS2),a
 	bit BLOCK_COLLISION_BIT,d
+	jr nz, proc_update_player_check_jump
+	bit BLOCK_LADDER_BIT,d
 	jr z, proc_update_player_reset_vel
+	jr proc_update_player_skip_ground
+proc_update_player_check_jump:
 	pop hl
 	pop bc
 	ld a,b
@@ -3567,6 +3575,7 @@ proc_update_player_cap:
 	ld b,a
 	push bc
 	push hl
+proc_update_player_skip_ground:
 	ld a,0
 	ld (SCRATCH_ADDRESS2),a
 	ld bc,&FBFE
