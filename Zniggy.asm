@@ -4535,7 +4535,7 @@ start:
 	ld hl, DATA_ZIGGY_RIGHT
 	ld (PLAYER_SPRITE), hl
 	ld hl, CURRENT_ROOM_NUMBER
-	ld (hl),55
+	ld (hl),35
 	ld a,CHAR_ZERO+3
 	ld (PLAYER_LIVES),a
 	
