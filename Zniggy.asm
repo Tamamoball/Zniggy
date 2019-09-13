@@ -18,7 +18,108 @@ org $8200
  
 INCLUDE Data.asm
 
+;==============================================================
+; Defines
+;==============================================================
+ 
+SCREEN_PIXEL_START          equ $4000
+SCREEN_PIXEL_SIZE           equ $1800
+ 
+SCREEN_ATTRIBUTE_START      equ $5800
+SCREEN_ATTRIBUTE_SIZE       equ $0300
+ 
+SCREEN_BORDER_COLOR         equ $FE ; Last 3 bits defines color
+ 
+BLACK_INK                   equ $00
+BLUE_INK                    equ $01
+RED_INK                     equ $02
+PURPLE_INK                  equ $03
+GREEN_INK                   equ $04
+CYAN_INK                    equ $05
+YELLOW_INK                  equ $06
+WHITE_INK                   equ $07
+ 
+BLACK_PAPER                 equ BLACK_INK << 3
+BLUE_PAPER                  equ BLUE_INK << 3
+RED_PAPER                   equ RED_INK << 3
+PURPLE_PAPER                equ PURPLE_INK << 3
+GREEN_PAPER                 equ GREEN_INK << 3
+CYAN_PAPER                  equ CYAN_INK << 3
+YELLOW_PAPER                equ YELLOW_INK << 3
+WHITE_PAPER                 equ WHITE_INK << 3
+ 
+FLASH                       equ $80
+BRIGHT                      equ $40
+ 
+BLOCK_COLLISION             equ $01
+BLOCK_COLLISION_BIT         equ 0
+BLOCK_LADDER                equ $02
+BLOCK_LADDER_BIT            equ 1
 
+ 
+SCRATCH_ADDRESS1            equ $5CCB
+SCRATCH_ADDRESS2            equ $5CCD
+SCRATCH_ADDRESS3            equ $5CD3
+SCRATCH_ADDRESS4            equ $5CD5
+CURRENT_ROOM_ADDRESS        equ $5CCE
+CURRENT_ROOM_NUMBER         equ $5CD0
+CURRENT_ROOM_GEMS           equ $5CF0
+CURRENT_SPRITE              equ $5CD4
+SPRITE_LENGTH               equ $5CD2
+BUG_COUNT                   equ $5FFF
+WALKER_COUNT                equ $5FFE
+
+COLLECTED_GEMS              equ $60A0
+GEM_COLOR                   equ $5EFF
+
+PLAYER_POS                  equ $5D00
+PLAYER_X                    equ $5D00
+PLAYER_Y                    equ $5D01
+PLAYER_VEL                  equ $5D02
+PLAYER_ANIM                 equ $5D03
+PLAYER_SPRITE               equ $5D04
+PLAYER_GEMS                 equ $5D06
+PLAYER_ENTRY_X              equ $5D07
+PLAYER_ENTRY_Y              equ $5D08
+PLAYER_ON_LADDER            equ $5D09
+
+SPRITE_SIZE_8X8             equ 0
+SPRITE_SIZE_16X8            equ 8
+SPRITE_SIZE_8X16            equ 8
+SPRITE_SIZE_16X16           equ 24
+SPRITE_SIZE_24X8            equ 16
+SPRITE_LOOKUP_OFFSET        equ 1
+SPRITE_WIDTH_OFFSET         equ 2
+SPRITE_HEIGHT_OFFSET        equ 3
+SPRITE_DATA_SIZE            equ 4
+
+MONSTER_START               equ $6100
+MONSTER_POS                 equ $6100
+MONSTER_X                   equ $6100
+MONSTER_Y                   equ $6101
+MONSTER_SPRITE              equ $6102
+MONSTER_DIR                 equ $6104
+MONSTER_SIZE                equ 8
+
+MONSTER_POS_OFFSET          equ 0
+MONSTER_X_OFFSET            equ 0
+MONSTER_Y_OFFSET            equ 1
+MONSTER_SPRITE_OFFSET       equ 2
+MONSTER_DIR_OFFSET          equ 4
+MONSTER_WIDTH_OFFSET        equ 6
+MONSTER_BWIDTH_OFFSET       equ 5
+MONSTER_HEIGHT_OFFSET       equ 7
+
+ROOM_WIDTH                  equ 32
+ROOM_HEIGHT                 equ 18
+ROOM_SIZE                   equ 32*18
+SCREEN_HEIGHT               equ 24
+MAP_WIDTH                   equ 8
+
+ROOM_START                  equ $6B00
+ROOM_END                    equ $6D41
+
+ROOM_BITS                   equ %00111111
 
  
 ;==============================================================
@@ -329,6 +430,9 @@ proc_check_transition4:
 	ld a,244
 	cp b
 	ret nc
+	ld a,(PLAYER_ON_LADDER)
+	cp 0
+	ret z
 	ld a, 118
 	ld (PLAYER_Y),a
 	ld a,(CURRENT_ROOM_NUMBER)
@@ -453,6 +557,8 @@ ENDP
 PROC
 proc_climb_ladder:
 ;-------------------------------------------------------------
+	xor a
+	ld (PLAYER_ON_LADDER),a
 	ld a,(PLAYER_X)
 	rra
 	rra
@@ -474,6 +580,8 @@ proc_climb_ladder:
 	bit BLOCK_LADDER_BIT,a
 	ret z
 proc_climb_ladder_on:
+	ld a,1
+	ld (PLAYER_ON_LADDER),a
 	ld a,(PLAYER_VEL)
 	sub 248
 	jr nc, proc_climb_ladder_reset_vel_end
@@ -823,6 +931,13 @@ proc_draw_sprite:
 	push bc
 	push de
 	ld a,b
+	and $07
+	jr nz,proc_draw_sprite_skip_tile
+	ex af,af'
+	dec a
+	ex af,af'
+proc_draw_sprite_skip_tile:
+	ld a,b
 	rra
 	rra
 	rra
@@ -889,10 +1004,13 @@ proc_draw_sprites:
 	
 
 	ld bc,(PLAYER_POS)
+	ld a,160
+	cp b
+	jr c, proc_draw_sprites_skip_player
 	ld ix,(PLAYER_SPRITE)
 	ld d,BLACK_PAPER | PURPLE_INK | BRIGHT
 	call proc_draw_sprite	
-	
+proc_draw_sprites_skip_player:
 	ld iy,MONSTER_X
 	ld a,(BUG_COUNT)
 	ld b,a
@@ -1050,6 +1168,9 @@ proc_redraw_blocks:
 ;-------------------------------------------------------------
 	; AFFECTS: everything
 	ld bc,(PLAYER_POS)
+	ld a,160
+	cp b
+	jr c,proc_redraw_blocks_skip_player
 	ld a,b
 	rra
 	rra
@@ -1083,7 +1204,7 @@ proc_redraw_blocks:
 	pop bc
 	inc c
 	call proc_draw_block
-	
+proc_redraw_blocks_skip_player:
 	ld iy,MONSTER_START
 	ld a,(BUG_COUNT)
 	cp 0
