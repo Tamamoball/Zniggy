@@ -118,6 +118,7 @@ MAP_WIDTH                   equ 8
 
 ROOM_START                  equ $6B00
 ROOM_END                    equ $6D41
+ROOM_SCRATCH                equ $6D42
 
 ROOM_BITS                   equ %00111111
 
@@ -1501,13 +1502,55 @@ proc_load_map_loop_fill:
 	
 	ld de,ROOM_START
 	ld (CURRENT_ROOM_ADDRESS),de
+	;Start loading the tile layout!
+	push ix
+	;Load the tile lookup position into ix
+	ld (proc_load_map_ix_address+2),bc
+proc_load_map_ix_address:
+	ld ix,$0000
+	inc ix
+	inc ix
+	;Load the shift
+	ld a,(bc)
+	ld (proc_load_map_shift_load+1),a
+	inc bc
+	;Load the count mask
+	ld a,(bc)
+	ld l,a
+	;Skip the index data to get to the meat
+proc_load_map_until_end:
+	ld a,(bc)
+	inc bc
+	cp $FF
+	jr nz,proc_load_map_until_end
+	
+	; Time for loading each tile run-length
 proc_load_map_loop2:
+	;Load the run-length into h
 	ld a,(bc)
 	cp $FF
 	jr z,proc_load_map_loop2_end
-	ld h,a
-	inc bc
+	and l
+	ld (ROOM_SCRATCH),a
+	; Load the tile index index
 	ld a,(bc)
+	; Shift down to proper value
+proc_load_map_shift_load:
+	ld h,5
+proc_load_map_shift:
+	or a
+	rra
+	dec h
+	jr nz,proc_load_map_shift
+	; Load tile index address
+	ld (proc_load_map_index_address+2),a
+	; Load count into h
+	ld a,(ROOM_SCRATCH)
+	ld h,a
+	; Load tile index
+proc_load_map_index_address:
+	ld a,(ix+0)
+	; Load the tiles into the next h bytes of memory
 proc_load_map_loop3:
 	ld (de),a
 	inc de
@@ -1517,9 +1560,12 @@ proc_load_map_loop3:
 	jr proc_load_map_loop2
 proc_load_map_loop2_end:
 	inc bc
+	pop ix
 	push bc
 	call proc_draw_blocks
 	pop hl
+	;Done with the tile layout!
+	
 	;ld bc,ROOM_SIZE
 	;add hl,bc
 	ld a,(hl)
