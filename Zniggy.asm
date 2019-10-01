@@ -22,6 +22,8 @@ INCLUDE Data.asm
 ; Defines
 ;==============================================================
  
+STARTING_ROOM				equ 35
+ 
 SCREEN_PIXEL_START          equ $4000
 SCREEN_PIXEL_SIZE           equ $1800
  
@@ -88,6 +90,7 @@ SPRITE_SIZE_16X8            equ 8
 SPRITE_SIZE_8X16            equ 8
 SPRITE_SIZE_16X16           equ 24
 SPRITE_SIZE_24X8            equ 16
+SPRITE_SIZE_24X16			equ 32
 SPRITE_LOOKUP_OFFSET        equ 1
 SPRITE_WIDTH_OFFSET         equ 2
 SPRITE_HEIGHT_OFFSET        equ 3
@@ -908,12 +911,15 @@ proc_draw_sprite:
 	and %00000111
 	ld h,SPRITE_LOOKUP>>8
 	add a,(ix+SPRITE_LOOKUP_OFFSET)
+	or a
+	rla
 	ld l,a
-	ld d,0
 	ld e,(hl)
+	inc hl
+	ld d,(hl)
 	ld a,(ix+SPRITE_WIDTH_OFFSET)
 	ld (SCRATCH_ADDRESS4),a
-	add ix,de ;ix now contains the sprite address	
+	add ix,de ;ix now contains the sprite address
 	ld a,b
 	rra
 	rra
@@ -1712,7 +1718,7 @@ start:
 	ld hl, DATA_ZIGGY_RIGHT
 	ld (PLAYER_SPRITE), hl
 	ld hl, CURRENT_ROOM_NUMBER
-	ld (hl),35
+	ld (hl),STARTING_ROOM
 	ld a,CHAR_ZERO+3
 	ld (PLAYER_LIVES),a
 	
