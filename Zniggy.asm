@@ -17,6 +17,7 @@
 org $8200
  
 INCLUDE Data.asm
+INCLUDE Title.asm
 
 ;==============================================================
 ; Defines
@@ -125,6 +126,7 @@ ROOM_SCRATCH                equ $6D42
 
 ROOM_BITS                   equ %00111111
 
+FRAMEBUFFER_SIZE            equ 6912
  
 ;==============================================================
 ; Utility Functions
@@ -1493,6 +1495,18 @@ proc_load_map_loop_fill:
 	dec b
 	jr nz,proc_load_map_loop_fill
 	
+	ld hl,SCREEN_PIXEL_START
+	ld bc,32*8*24
+	ld a,0
+proc_load_map_loop_fill2:	
+	ld (hl),a
+	inc hl
+	dec c
+	jr nz,proc_load_map_loop_fill2
+	dec b
+	jr nz,proc_load_map_loop_fill2
+	
+	
 	ld b,0
 	ld a,(CURRENT_ROOM_NUMBER)
 	rla
@@ -1698,6 +1712,21 @@ org $8000
 ; Initialization
 ;==============================================================
 start:
+
+start_title:
+	ld hl, TITLE_IMAGE
+	ld de, SCREEN_PIXEL_START
+	ld bc, FRAMEBUFFER_SIZE
+	ldir
+	
+wait_title:
+	ld bc,&BFFE
+	in a,(c)
+	bit 0,a
+	jr z, start_game
+	jr wait_title
+	
+start_game:
 	ld a, BLUE_PAPER | WHITE_INK
     call proc_fill_screen_attribute
 	
@@ -1766,7 +1795,7 @@ loopyboy:
 	ld a,(PLAYER_LIVES)
 	cp CHAR_ZERO-1
 	jr nz,loopyboy
-	jr start
+	jp start
 ret
 end start
 
