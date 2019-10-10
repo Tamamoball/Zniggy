@@ -497,10 +497,10 @@ proc_check_transition:
 ;-------------------------------------------------------------
 	ld a,(PLAYER_X)
 	ld b,a
-	ld a, 245
+	ld a, 246
 	cp b
 	jr nc, proc_check_transition2
-	ld a,8
+	ld a,3
 	ld (PLAYER_X),a
 	ld a,(CURRENT_ROOM_NUMBER)
 	inc a
@@ -516,7 +516,7 @@ proc_check_transition2:
 	ld a,2
 	cp b
 	jr c, proc_check_transition3
-	ld a,240
+	ld a,245
 	ld (PLAYER_X),a
 	ld a,(CURRENT_ROOM_NUMBER)
 	dec a
