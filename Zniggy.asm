@@ -85,6 +85,9 @@ PLAYER_GEMS                 equ $5D06
 PLAYER_ENTRY_X              equ $5D07
 PLAYER_ENTRY_Y              equ $5D08
 PLAYER_ON_LADDER            equ $5D09
+PLAYER_ON_GROUND            equ $5D10
+PLAYER_JUMP_STATE           equ $5D11
+PLAYER_LADDER_FEET          equ $5D12
 
 SPRITE_SIZE_8X8             equ 0
 SPRITE_SIZE_16X8            equ 8
@@ -127,6 +130,16 @@ ROOM_SCRATCH                equ $6D42
 ROOM_BITS                   equ %00111111
 
 FRAMEBUFFER_SIZE            equ 6912
+ 
+ 
+JUMP_ARC:
+db -3,-3,-2,-2,-2,-2,-2,-2,-2,-1,-1,-1
+JUMP_NEUTRAL:
+db 0,0,0,1
+JUMP_END:
+db 2
+JUMP_LENGTH                 equ JUMP_END-JUMP_ARC
+JUMP_NEUTRAL_LENGTH         equ JUMP_NEUTRAL-JUMP_ARC
  
 ;==============================================================
 ; Utility Functions
@@ -288,9 +301,9 @@ ENDP
 PROC
 proc_move_player_right:
 ;-------------------------------------------------------------
-	inc b
-	inc b
-	inc d
+	ld hl,PLAYER_POS
+	inc (hl)
+	inc (hl)
 	ld hl, DATA_ZIGGY_RIGHT
 	ld (PLAYER_SPRITE), hl
 ret
@@ -300,11 +313,50 @@ ENDP
 PROC
 proc_move_player_left:
 ;-------------------------------------------------------------
-	dec b
-	dec b
-	inc d
+	ld hl,PLAYER_POS
+	dec (hl)
+	dec (hl)
 	ld hl, DATA_ZIGGY_LEFT
 	ld (PLAYER_SPRITE), hl
+ret
+ENDP
+
+
+;-------------------------------------------------------------
+PROC
+proc_check_collision:
+; INPUTS: bc is position
+; OUTPUTS: z set if no collision
+;-------------------------------------------------------------
+	push bc
+	ld a,c
+	rra
+	rra
+	rra
+	and %00011111
+	ld c,a
+	call proc_get_block_properties
+	bit BLOCK_COLLISION_BIT,a
+	pop bc
+ret
+ENDP
+
+;-------------------------------------------------------------
+PROC
+proc_check_ladder_collision:
+; INPUTS: bc is position
+; OUTPUTS: z set if no collision
+;-------------------------------------------------------------
+	push bc
+	ld a,c
+	rra
+	rra
+	rra
+	and %00011111
+	ld c,a
+	call proc_get_block_properties
+	bit BLOCK_LADDER_BIT,a
+	pop bc
 ret
 ENDP
 
@@ -312,69 +364,109 @@ ENDP
 PROC
 proc_move_player_out_walls:
 ;-------------------------------------------------------------
+; Left
+	ld bc,(PLAYER_POS)
+	inc b
+	call proc_check_collision
+	jr nz, left_collision
+	ld a,b
+	add a,6
+	ld b,a
+	call proc_check_collision
+	jr nz, left_collision
+	ld a,b
+	add a,6
+	ld b,a
+	call proc_check_collision
+	jr z, no_left_collision
+left_collision:
 	ld a,(PLAYER_X)
-	rra
-	rra
-	rra
-	and %00011111
+	ld b,a
+	and $1
+	cpl
+	add a,3
+	add a,b
+	ld (PLAYER_X),a
+no_left_collision:
+; Right
+	ld bc,(PLAYER_POS)
+	ld a,c
+	add a,7
 	ld c,a
-	ld a,(PLAYER_Y)
+	inc b
+	call proc_check_collision
+	jr nz, right_collision
+	ld a,b
+	add a,6
+	ld b,a
+	call proc_check_collision
+	jr nz, right_collision
+	ld a,b
+	add a,6
+	ld b,a
+	call proc_check_collision
+	jr z, no_right_collision
+right_collision:
+	ld a,(PLAYER_X)
+	ld b,a
+	and $1
+	cpl
+	add a,2
+	cpl
+	add a,b
+	ld (PLAYER_X),a
+no_right_collision:
+
+; Downwards
+	xor a
+	ld (PLAYER_ON_GROUND),a
+	
+	ld bc,(PLAYER_POS)
+	ld a,b
 	add a,15
 	ld b,a
-	push bc
-	call proc_get_block_properties
-	bit BLOCK_COLLISION_BIT,a
-	jr nz, proc_move_player_out_walls_right
-	pop bc
-	push bc
-	ld a,b
-	sub 9
-	ld b,a
-	call proc_get_block_properties
-	bit BLOCK_COLLISION_BIT,a
-	jr z, proc_move_player_out_walls2
-proc_move_player_out_walls_right:
-	ld a,(PLAYER_X)
-	add a,2
-	ld (PLAYER_X),a
-proc_move_player_out_walls2:
-	pop bc
-	push bc
-	ld a,(PLAYER_X)
-	add a,7
-	rra
-	rra
-	rra
-	and %00011111
+	inc c
+	call proc_check_collision
+	jr nz, down_collision
+	ld a,c
+	add a,5
 	ld c,a
-	push bc
-	call proc_get_block_properties
-	pop bc
-	bit BLOCK_COLLISION_BIT,a
-	jr nz, proc_move_player_out_walls_left
-	ld a,b
-	sub 8
-	ld b,a
-	call proc_get_block_properties
-	bit BLOCK_COLLISION_BIT,a
-	jr z, proc_move_player_out_walls3
-proc_move_player_out_walls_left:
-	ld a,(PLAYER_X)
-	dec a
-	dec a
-	ld (PLAYER_X),a
-proc_move_player_out_walls3:
-	pop bc
-	ld a,b
-	sub 8
-	ret c
-	ld b,a
-	call proc_get_block_properties
-	bit BLOCK_COLLISION_BIT,a
-	ret z
-	ld a,(PLAYER_VEL)
+	call proc_check_collision
+	jr z, no_down_collision
+down_collision:
 	ld a,1
-	ld (PLAYER_VEL),a
+	ld (PLAYER_ON_GROUND),a
+	ld a,(PLAYER_Y)
+	ld b,a
+	and $1
+	cpl 
+	add a,2
+	cpl
+	add a,b
+	ld (PLAYER_Y),a
+no_down_collision:
+
+; Upwards
+	ld bc,(PLAYER_POS)
+	ld a,220
+	cp b
+	jr c,up_collision
+	call proc_check_collision
+	jr nz, up_collision
+	ld a,c
+	add a,7
+	ld c,a
+	call proc_check_collision
+	jr z, no_up_collision
+up_collision:
+	ld a,(PLAYER_Y)
+	ld b,a
+	and %00000111
+	cpl
+	add a,9
+	add a,b
+	ld (PLAYER_Y),a
+no_up_collision:
 ret
 ENDP
 
@@ -437,8 +529,11 @@ proc_check_transition4:
 	cp b
 	ret nc
 	ld a,(PLAYER_ON_LADDER)
-	cp 0
+	and a
 	ret z
+	ld a,(PLAYER_LADDER_FEET)
+	and a
+	ret nz
 	ld a, 118
 	ld (PLAYER_Y),a
 	ld a,(CURRENT_ROOM_NUMBER)
@@ -559,187 +654,115 @@ proc_check_player_death_loop_end:
 ret
 ENDP
 
-;-------------------------------------------------------------
-PROC
-proc_climb_ladder:
-;-------------------------------------------------------------
-	xor a
-	ld (PLAYER_ON_LADDER),a
-	ld a,(PLAYER_X)
-	rra
-	rra
-	rra
-	and %00011111
-	ld c,a
-	ld a,(PLAYER_Y)
-	add a,16
-	ld b,a
-	push bc
-	call proc_get_block_properties
-	pop bc
-	bit BLOCK_LADDER_BIT,a
-	jr nz,proc_climb_ladder_on
-	inc c
-	push bc
-	call proc_get_block_properties
-	pop bc
-	bit BLOCK_LADDER_BIT,a
-	ret z
-proc_climb_ladder_on:
-	ld a,1
-	ld (PLAYER_ON_LADDER),a
-	ld a,(PLAYER_VEL)
-	sub 248
-	jr nc, proc_climb_ladder_reset_vel_end
-	ld a,0
-	ld (PLAYER_VEL),a
-proc_climb_ladder_reset_vel_end:	
-	push bc
-	ld bc,&FBFE
-	in a,(c)
-	bit 1,a
-	pop bc
-	jr nz, proc_climb_ladder2
-	ld a,b
-	sub 8
-	ld b,a
-	call proc_get_block_properties
-	bit BLOCK_COLLISION_BIT,a
-	ret nz
-	;ld a,(PLAYER_VEL)
-	;add a,254
-	;ld (PLAYER_VEL),a
-	ret
-proc_climb_ladder2:
-	ld a,b
-	add a,6
-	ld b,a
-	call proc_get_block_properties
-	bit BLOCK_COLLISION_BIT,a
-	ret nz
-	ld bc, &FDFE
-	in a,(c)
-	bit 1,a
-	ret nz
-	ld a,1
-	ld (PLAYER_VEL),a
-ret
-ENDP
+
 
 ;-------------------------------------------------------------
 PROC
-proc_update_player:
-;-------------------------------------------------------------
-	; AFFECTS: hl, de, a, b
+proc_player_movement:
+	;Left and right
 	ld bc, &FDFE
-	ld d,0
 	in a,(c)
-	ld (SCRATCH_ADDRESS1),a
 	bit 2,a
-	ld hl, PLAYER_X
-	ld b,(hl)
 	call z, proc_move_player_right
 	bit 0,a
 	call z, proc_move_player_left
-proc_update_player_vel:
-	ld hl, PLAYER_X
-	ld (hl),b
-	inc hl
-	ld b,(hl)
-	inc hl
-	ld a,(hl)
-	push hl
-	ld hl,SWAP_BIT
-	add a,(hl)
-	pop hl
 	
-	cp 5
-	jr nz, proc_update_player_cap
-	ld a,4
-proc_update_player_cap:
-	push de
-	push bc
-	push hl
-	push af
-	add a,1
-	ld a,(PLAYER_X)
-	add a,4
-	rra
-	rra
-	rra
-	and %00011111
-	ld c,a	
-	ld a,(PLAYER_Y)
-	add a,16
-	and %11111000
-	ld b,a
-	call proc_get_block_properties
-	ld d,a
-	pop af
-	ld (SCRATCH_ADDRESS2),a
-	bit BLOCK_COLLISION_BIT,d
-	jr nz, proc_update_player_check_jump
-	bit BLOCK_LADDER_BIT,d
-	jr z, proc_update_player_reset_vel
-	jr proc_update_player_skip_ground
-proc_update_player_check_jump:
-	pop hl
-	pop bc
-	ld a,b
-	and %11111100
-	ld b,a
-	push bc
-	push hl
-proc_update_player_skip_ground:
+	;Vertical
+	ld a,(PLAYER_ON_LADDER)
+	and a
+	jr z,jump_ladder_skip
+jump_ladder_arc:
+	ld a,(PLAYER_JUMP_STATE)
+	cp JUMP_NEUTRAL_LENGTH
+	jr c,jump_ladder_skip
+	ld a,JUMP_NEUTRAL_LENGTH
+	ld (PLAYER_JUMP_STATE),a
+jump_ladder_skip:
+	ld a,(PLAYER_JUMP_STATE)
+	inc a
+	cp JUMP_LENGTH
+	jr c, jump_arc_continue
+	ld a,JUMP_LENGTH
+jump_arc_continue:
+	ld (PLAYER_JUMP_STATE),a
+	ld hl,JUMP_ARC
+	add a,l
+	ld l,a
 	ld a,0
-	ld (SCRATCH_ADDRESS2),a
-	ld bc,&FBFE
+	adc a,h
+	ld h,a
+	ld a,(PLAYER_Y)
+	add a,(hl)
+	ld (PLAYER_Y),a
+	;Jump
+	ld a,(PLAYER_ON_GROUND)
+	and a
+	jr nz, jump_start
+	ld a,(PLAYER_LADDER_FEET)
+	and a
+	jr z, jump_skip
+jump_start:
+	ld bc, &7FFE
+	in a,(c)
+	bit 0,a
+	jr nz, jump_skip
+	xor a
+	ld (PLAYER_JUMP_STATE),a
+jump_skip:
+	;Ladder
+	xor a
+	ld (PLAYER_ON_LADDER), a
+	ld (PLAYER_LADDER_FEET), a
+	ld bc,(PLAYER_POS)
+	ld a,b
+	add a,4
+	ld b,a
+	call proc_check_ladder_collision
+	jr nz,player_ladder
+	ld a,c
+	add a,7
+	ld c,a
+	call proc_check_ladder_collision
+	jr nz,player_ladder
+	ld a,b
+	add a,12
+	ld b,a
+	call proc_check_ladder_collision
+	jr nz,player_ladder_on_feet
+	ld a,c
+	sub 7
+	ld c,a
+	call proc_check_ladder_collision
+	jr z,player_no_ladder
+player_ladder_on_feet:
+	ld a,1
+	ld (PLAYER_LADDER_FEET),a
+player_ladder:
+	ld a,1
+	ld (PLAYER_ON_LADDER),a
+player_check_climb:
+	ld bc, &FBFE
 	in a,(c)
 	bit 1,a
-	jr nz, proc_update_player_reset_vel
-	ld a,251
-	ld (SCRATCH_ADDRESS2),a
-	ld a,1
-	ld (SWAP_BIT),a
-	
-proc_update_player_reset_vel:
-	ld a,(SCRATCH_ADDRESS2)
-	ld (PLAYER_VEL),a
-	call proc_climb_ladder
-	ld a,(PLAYER_VEL)
-	
-	pop hl
-	pop bc
-	pop de
-	ld (hl),a
-	cp 127
-	jr nc,proc_update_player_skip_reduce
+	jr nz, player_skip_ladder_up
+	ld a,(PLAYER_Y)
+	dec a
+	ld (PLAYER_Y),a
+player_skip_ladder_up:
+	ld bc, &FDFE
+	in a,(c)
+	bit 1,a
+	jr nz, player_skip_ladder_down
+	ld a,(PLAYER_Y)
 	inc a
-	rra
-	and %00001111
-proc_update_player_skip_reduce:
-	dec hl
-	add a,b
-	ld (hl),a
-	
-proc_update_player_anim:
-	ld hl,PLAYER_ANIM
-	ld a,d
-	cp 0
-	jr nz,proc_update_player_anim_r
-	ld (hl),0
-	jr proc_update_player_end
-proc_update_player_anim_r:
-	inc (hl)
-	ld a,16
-	cp (hl)
-	jr nz, proc_update_player_end
-	ld (hl),0
-proc_update_player_end:
-	call proc_move_player_out_walls
+	ld (PLAYER_Y),a
+player_skip_ladder_down:
+player_no_ladder:
 	call proc_check_transition
+	call proc_move_player_out_walls
 ret
 ENDP
+;-------------------------------------------------------------
 
 
 ;-------------------------------------------------------------
@@ -1764,12 +1787,11 @@ start_reset_loop:
 	
 	call proc_load_map
 loopyboy:
-	ei
-	halt
-	halt
-	di
+	;ei
+	;halt
+	;di
 	call proc_redraw_blocks	
-	call proc_update_player
+	call proc_player_movement
 	call proc_draw_sprites
 	call proc_draw_gems
 	call proc_update_bugs
@@ -1781,15 +1803,24 @@ loopyboy:
 	ld (SWAP_BIT),a
 	
 	;The code below gives a reliable way to prevent flickering at the cost of a frame
-	;ei
-	;halt
-	;di
-	;ld bc,$6A0
-;gameloopstall:
-	;dec bc
-	;ld a,0
-	;cp b
-	;jr nz,gameloopstall
+	
+	ld a,(BUG_COUNT)
+	ld b,a
+	ld a,(WALKER_COUNT)
+	add a,b
+	cp 1
+	ei
+	jr nc,skip_extra_halt
+	halt
+skip_extra_halt:
+	halt
+	di
+	ld bc,$6A0
+gameloopstall:
+	dec bc
+	ld a,0
+	cp b
+	jr nz,gameloopstall
 
 	
 	ld a,(PLAYER_LIVES)
