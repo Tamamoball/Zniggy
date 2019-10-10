@@ -58,6 +58,8 @@ BLOCK_COLLISION             equ $01
 BLOCK_COLLISION_BIT         equ 0
 BLOCK_LADDER                equ $02
 BLOCK_LADDER_BIT            equ 1
+BLOCK_DEATH                 equ $04
+BLOCK_DEATH_BIT             equ 2
 
  
 SCRATCH_ADDRESS1            equ $5CCB
@@ -362,6 +364,25 @@ ENDP
 
 ;-------------------------------------------------------------
 PROC
+proc_check_spike_collision:
+; INPUTS: bc is position
+; OUTPUTS: z set if no collision
+;-------------------------------------------------------------
+	push bc
+	ld a,c
+	rra
+	rra
+	rra
+	and %00011111
+	ld c,a
+	call proc_get_block_properties
+	bit BLOCK_DEATH_BIT,a
+	pop bc
+ret
+ENDP
+
+;-------------------------------------------------------------
+PROC
 proc_move_player_out_walls:
 ;-------------------------------------------------------------
 ; Left
@@ -651,6 +672,25 @@ proc_check_player_death_end:
 	jr nz,proc_check_player_death_loop
 	
 proc_check_player_death_loop_end:
+
+	ld bc,(PLAYER_POS)
+	ld a,b
+	add a,12
+	ld b,a
+	ld a,c
+	add a,4
+	ld c,a
+	call proc_check_spike_collision
+	ret z
+proc_kill_player:
+	ld a,(PLAYER_LIVES)
+	dec a
+	ld (PLAYER_LIVES),a
+	ld a,(PLAYER_ENTRY_X)
+	ld (PLAYER_X),a
+	ld a,(PLAYER_ENTRY_Y)
+	ld (PLAYER_Y),a
+	call proc_load_map
 ret
 ENDP
 
