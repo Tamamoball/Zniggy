@@ -1813,7 +1813,6 @@ start_game:
 	ld (hl),a
 	xor a
 	ld (PLAYER_GEMS_HI),a
-	ld a,99
 	ld (PLAYER_GEMS),a
 	inc hl
 	ld (hl),a
@@ -1863,6 +1862,9 @@ loopyboy:
 	cp 1
 	ei
 	jr nc,skip_extra_halt
+	ld a,(CURRENT_ROOM_GEMS)
+	and a
+	jr z, skip_extra_halt
 	halt
 skip_extra_halt:
 	halt
