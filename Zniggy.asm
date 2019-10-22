@@ -84,6 +84,7 @@ PLAYER_VEL                  equ $5D02
 PLAYER_ANIM                 equ $5D03
 PLAYER_SPRITE               equ $5D04
 PLAYER_GEMS                 equ $5D06
+PLAYER_GEMS_HI              equ $5D13
 PLAYER_ENTRY_X              equ $5D07
 PLAYER_ENTRY_Y              equ $5D08
 PLAYER_ON_LADDER            equ $5D09
@@ -438,10 +439,7 @@ right_collision:
 	ld (PLAYER_X),a
 no_right_collision:
 
-; Downwards
-	xor a
-	ld (PLAYER_ON_GROUND),a
-	
+; Downwards	
 	ld bc,(PLAYER_POS)
 	ld a,b
 	add a,15
@@ -606,6 +604,12 @@ proc_check_player_collect_loop:
 	ld a,(PLAYER_GEMS)
 	add a,1
 	daa
+	cp 100
+	jr nz, proc_check_player_collect_skip_hi
+	ld hl, PLAYER_GEMS_HI
+	inc (hl)
+	xor a
+proc_check_player_collect_skip_hi:
 	ld (PLAYER_GEMS),a
 	call proc_draw_values_text
 proc_check_player_collect_loop_end:
@@ -799,6 +803,9 @@ player_skip_ladder_up:
 player_skip_ladder_down:
 player_no_ladder:
 	call proc_check_transition
+	xor a
+	ld (PLAYER_ON_GROUND),a
+	call proc_move_player_out_walls
 	call proc_move_player_out_walls
 ret
 ENDP
@@ -1500,18 +1507,21 @@ ENDP
 PROC
 proc_draw_values_text:
 ;-------------------------------------------------------------
+	ld a,(PLAYER_GEMS_HI)
+	add a,CHAR_ZERO
+	ld (PLAYER_GEM_TEXT),a
 	ld a,(PLAYER_GEMS)
+	and $0F
+	add a,CHAR_ZERO
+	ld (PLAYER_GEM_TEXT+2),a
+	ld a,(PLAYER_GEMS)
+	rra
+	rra
+	rra
+	rra
 	and $0F
 	add a,CHAR_ZERO
 	ld (PLAYER_GEM_TEXT+1),a
-	ld a,(PLAYER_GEMS)
-	rra
-	rra
-	rra
-	rra
-	and $0F
-	add a,CHAR_ZERO
-	ld (PLAYER_GEM_TEXT),a
 	
 	ld bc,$A003
 	ld hl,DATA_LIVES_STRING
@@ -1802,6 +1812,8 @@ start_game:
 	inc hl
 	ld (hl),a
 	xor a
+	ld (PLAYER_GEMS_HI),a
+	ld a,99
 	ld (PLAYER_GEMS),a
 	inc hl
 	ld (hl),a
