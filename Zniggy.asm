@@ -134,6 +134,9 @@ ROOM_BITS                   equ %00111111
 
 FRAMEBUFFER_SIZE            equ 6912
  
+CHANNEL_1_PTR equ $5ED2
+CHANNEL_2_PTR equ $5ED4
+CHANNEL_3_PTR equ $5ED6
  
 JUMP_ARC:
 db -3,-3,-2,-2,-2,-2,-2,-2,-2,-1,-1,-1
@@ -143,7 +146,7 @@ JUMP_END:
 db 2
 JUMP_LENGTH                 equ JUMP_END-JUMP_ARC
 JUMP_NEUTRAL_LENGTH         equ JUMP_NEUTRAL-JUMP_ARC
- 
+
 ;==============================================================
 ; Utility Functions
 ;==============================================================
@@ -1073,6 +1076,111 @@ proc_draw_sprite_loop2:
 ret
 ENDP
 
+;-------------------------------------------------------------
+PROC
+proc_draw_znig:
+;-------------------------------------------------------------
+	;Input: b: y-position, c: x-position, d: sprite attribute ix: sprite address
+	;Affects: Everything
+	;Used for sprites with mask, which is only our lovely zniggy
+;Get sprite address from x value
+	ld d,(ix)
+	
+	ld a,c
+	exx
+	ld b,(ix+SPRITE_HEIGHT_OFFSET)
+	and %00000111
+	ld h,SPRITE_LOOKUP>>8
+	add a,(ix+SPRITE_LOOKUP_OFFSET)
+	or a
+	rla
+	ld l,a
+	ld e,(hl)
+	inc hl
+	ld d,(hl)
+	ld a,(ix+SPRITE_WIDTH_OFFSET)
+	ld (SCRATCH_ADDRESS4),a
+	add ix,de ;ix now contains the sprite address
+	ld a,b
+	rra
+	rra
+	rra
+	inc a
+	and %00011111
+	ex af,af'
+	exx
+	ld a,c
+	rra
+	rra
+	rra
+	and %00011111
+	ld c,a
+	
+	push bc
+	push de
+	ld a,b
+	and $07
+	jr nz,proc_draw_znig_skip_tile
+	ex af,af'
+	dec a
+	ex af,af'
+proc_draw_znig_skip_tile:
+	ld a,b
+	rra
+	rra
+	rra
+	and %00011111
+	ld b,a
+	call proc_get_screen_attribute_address
+	pop de
+	ld bc,32
+	ex af,af'
+	ld e,a
+proc_draw_znig_attrib_loop:
+	ld a,(SCRATCH_ADDRESS4)
+	push hl
+proc_draw_znig_attrib_loop2:
+	ld (hl),d
+	inc hl
+	dec a
+	jr nz,proc_draw_znig_attrib_loop2
+	pop hl
+	add hl,bc
+	dec e
+	jr nz,proc_draw_znig_attrib_loop
+	pop bc
+	
+
+	ld (SCRATCH_ADDRESS3),ix
+	ld de,(SCRATCH_ADDRESS3)
+	ld hl,SPRITE_DATA_SIZE
+	add hl,de
+	ex de,hl
+	exx
+proc_draw_znig_loop:
+	exx
+	push de
+	call proc_get_screen_pixel_address
+	pop de
+	exx
+	ld a,(SCRATCH_ADDRESS4)
+	ld c,a
+proc_draw_znig_loop2:
+	exx
+	ld a,(de)
+	ld (hl),a
+	inc hl
+	inc de
+	exx
+	dec c
+	jr nz, proc_draw_znig_loop2
+	exx
+	inc b
+	exx
+	dec b
+	jr nz, proc_draw_znig_loop
+ret
+ENDP
 
 ;-------------------------------------------------------------
 PROC
@@ -1088,7 +1196,7 @@ proc_draw_sprites:
 	jr c, proc_draw_sprites_skip_player
 	ld ix,(PLAYER_SPRITE)
 	ld d,BLACK_PAPER | PURPLE_INK | BRIGHT
-	call proc_draw_sprite	
+	call proc_draw_znig
 proc_draw_sprites_skip_player:
 	ld iy,MONSTER_X
 	ld a,(BUG_COUNT)
@@ -1780,24 +1888,125 @@ ENDP
 
 
 
+org $8100
+sound1:
+db $00, $3, $6, $9, $c, $f, $11, $14
+db $16, $18, $1a, $1c, $1d, $1e, $1f, $1f
+db $20, $1f, $1f, $1e, $1d, $1c, $1a, $18
+db $16, $14, $11, $f, $c, $9, $6, $3
+db $0, $fd, $fa, $f7, $f4, $f1, $ef, $ec
+db $ea, $e8, $e6, $e4, $e3, $e2, $e1, $e1
+db $e0, $e1, $e1, $e2, $e3, $e4, $e6, $e8
+db $ea, $ec, $ef, $f1, $f4, $f7, $fa, $fd
+sound2:
+db $01, $e1, $e2, $e3, $e4, $e5, $e6, $e7
+db $e8, $e9, $ea, $eb, $ec, $ed, $ee, $ef
+db $f0, $f1, $f2, $f3, $f4, $f5, $f6, $f7
+db $f8, $f9, $fa, $fb, $fc, $fd, $fe, $ff
+db $0, $1, $2, $3, $4, $5, $6, $7
+db $8, $9, $a, $b, $c, $d, $e, $f
+db $10, $11, $12, $13, $14, $15, $16, $17
+db $18, $19, $1a, $1b, $1c, $1d, $1e, $1f
+
 org $8000
 ;==============================================================
 ; Initialization
 ;==============================================================
-start:
+notelist:
+db 14,14,24,13,13,23,14,14,24,13,13,23,14,14,24 ;15
+db 9,9,29,12,12,22,10,10,20,7,7,27,7,10,27 ; 15
+db 0,14,0,2,2,22,3,3,23,7,7,27,9,9,29 ;15
+db 9,12,29,0,14,0,3,3,23,6,6,26,9,9,29 ;15
+db 10,10,20
 
+start:
+	di
 start_title:
 	ld hl, TITLE_IMAGE
 	ld de, SCREEN_PIXEL_START
 	ld bc, FRAMEBUFFER_SIZE
 	ldir
 	
+	ld hl,sound1
+	ld (CHANNEL_1_PTR),hl
+	ld de,sound2
+	ld bc,sound2
+	ld hl,sound1
+	ld (CHANNEL_2_PTR),hl
+	exx
+	ld bc,sound2
+	ld hl,notelist
+	ld de,$1000
+noteloop:
+	exx
+channel_1_update:
+	ld a,e
+channel_1_add:
+	add a,0
+	and $7F
+	ld e,a
+	ld a,(de)
+	ld l,a
+channel_2_update:
+	ld a,c
+channel_2_add:
+	add a,0
+	and $7F
+	ld c,a
+	ld a,(bc)
+	add a,l
+	ld l,a
+channel_3_update:
+	exx
+	ld a,c
+channel_3_add:
+	add a,0
+	and $7F
+	ld c,a
+	ld a,(bc)
+	exx
+	add a,l
+sound_out:
+	cp $80
+	ld a,$10
+	jr c,soundmusicloop
+	xor a
+soundmusicloop:
+	out ($FE),a ; 11
+	exx
+	dec de
 wait_title:
+	push bc
 	ld bc,&BFFE
 	in a,(c)
 	bit 0,a
+	pop bc
 	jr z, start_game
-	jr wait_title
+	
+	ld a,d
+	or e
+	jr nz,noteloop
+	ld de,$1000
+	ld a,(hl)
+	ld (channel_1_add+1),a
+	inc l
+	ld a,(hl)
+	ld (channel_2_add+1),a
+	inc l
+	ld a,(hl)
+	ld (channel_3_add+1),a
+	inc l
+	ld bc,sound2
+	exx
+	ld de,sound2
+	ld bc,sound1
+	exx
+	ld a,63
+	cp l
+	jr nz,noteloop
+	xor a
+	ld l,a
+	jr noteloop
 	
 start_game:
 	ld a, BLUE_PAPER | WHITE_INK
