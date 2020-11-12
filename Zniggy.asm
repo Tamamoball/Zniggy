@@ -1946,20 +1946,20 @@ org $8000
 ; Initialization
 ;==============================================================
 notelist:
-db 14,14,24,13,13,23,14,14,24,13,13,23,14,14,24 ;15
-db 9,9,29,12,12,22,10,10,20,7,7,27,7,10,27 ; 15
-db 0,14,0,2,2,22,3,3,23,7,7,27,9,9,29 ;15
-db 9,12,29,0,14,0,3,3,23,6,6,26,9,9,29 ;15
-db 10,10,20
+db 14,14,0,13,13,0,14,14,3,13,13,0,14,14,0 ;15
+db 9,9,2,12,12,0,10,10,0,7,7,6,7,10,0 ; 15
+db 0,14,0,2,2,1,3,3,0,7,7,0,9,9,0 ;15
+db 9,12,0,0,14,0,3,0,4,6,6,0,9,9,0 ;15
+db 10,10,3
 
 start:
-	di
 start_title:
 	ld hl, TITLE_IMAGE
 	ld de, SCREEN_PIXEL_START
 	ld bc, FRAMEBUFFER_SIZE
 	ldir
 	
+	di
 	ld hl,sound1
 	ld (CHANNEL_1_PTR),hl
 	ld de,sound2
@@ -2008,6 +2008,14 @@ soundmusicloop:
 	out ($FE),a ; 11
 	exx
 	dec de
+	ld a,$03
+delaysound:
+	dec a
+	jr nz,delaysound
+	dec de
+	ld a,d
+	or e
+	jr nz,noteloop
 wait_title:
 	push bc
 	ld bc,&BFFE
@@ -2016,9 +2024,6 @@ wait_title:
 	pop bc
 	jr z, start_game
 	
-	ld a,d
-	or e
-	jr nz,noteloop
 	ld de,$1000
 	ld a,(hl)
 	ld (channel_1_add+1),a
