@@ -66,6 +66,8 @@ SCRATCH_ADDRESS1            equ $5CCB
 SCRATCH_ADDRESS2            equ $5CCD
 SCRATCH_ADDRESS3            equ $5CD3
 SCRATCH_ADDRESS4            equ $5CD5
+SCRATCH_ADDRESS5            equ $5CD7
+SCRATCH_ADDRESS6            equ $5CD9
 CURRENT_ROOM_ADDRESS        equ $5CCE
 CURRENT_ROOM_NUMBER         equ $5CD0
 CURRENT_ROOM_GEMS           equ $5CF0
@@ -1084,6 +1086,17 @@ proc_draw_znig:
 	;Affects: Everything
 	;Used for sprites with mask, which is only our lovely zniggy
 ;Get sprite address from x value
+	xor a
+	ld (SCRATCH_ADDRESS5),a
+	ld (SCRATCH_ADDRESS6),a
+	ld a,c
+	and %00000111
+	cp 0
+	jr nz, no_znig_skip
+	ld a,1
+	ld (SCRATCH_ADDRESS5),a
+no_znig_skip:
+
 	ld d,(ix)
 	
 	ld a,c
@@ -1137,7 +1150,15 @@ proc_draw_znig_skip_tile:
 	ex af,af'
 	ld e,a
 proc_draw_znig_attrib_loop:
+
+	ld a,(SCRATCH_ADDRESS5)
+	cp 0
+	jr z, proc_draw_zniggy_sub_attribute_skip
+	ld a,1
+	jr proc_draw_zniggy_sub_attribute_skip2
+proc_draw_zniggy_sub_attribute_skip:
 	ld a,(SCRATCH_ADDRESS4)
+proc_draw_zniggy_sub_attribute_skip2:
 	push hl
 proc_draw_znig_attrib_loop2:
 	ld (hl),d
@@ -1167,15 +1188,27 @@ proc_draw_znig_loop:
 	ld c,a
 proc_draw_znig_loop2:
 	exx
+	ld a,(SCRATCH_ADDRESS6)
+	cp 0
+	jr z, proc_draw_znig_skip_skipper
+	ld a,(SCRATCH_ADDRESS5)
+	cp 0
+	jr nz, proc_draw_znig_skipper
+proc_draw_znig_skip_skipper:
 	ld a,(de)
 	ld (hl),a
+proc_draw_znig_skipper:
 	inc hl
 	inc de
 	exx
 	dec c
+	ld a,1
+	ld (SCRATCH_ADDRESS6),a
 	jr nz, proc_draw_znig_loop2
 	exx
 	inc b
+	xor a
+	ld (SCRATCH_ADDRESS6),a
 	exx
 	dec b
 	jr nz, proc_draw_znig_loop
@@ -2074,7 +2107,7 @@ loopyboy:
 	ld a,(CURRENT_ROOM_GEMS)
 	and a
 	jr z, skip_extra_halt
-	halt
+	;halt
 skip_extra_halt:
 	halt
 	di
