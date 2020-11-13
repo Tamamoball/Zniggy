@@ -93,6 +93,7 @@ PLAYER_ON_LADDER            equ $5D09
 PLAYER_ON_GROUND            equ $5D10
 PLAYER_JUMP_STATE           equ $5D11
 PLAYER_LADDER_FEET          equ $5D12
+PLAYER_SOUND_STATE			equ $5CDA
 
 SPRITE_SIZE_8X8             equ 0
 SPRITE_SIZE_16X8            equ 8
@@ -609,7 +610,7 @@ proc_check_player_collect_loop:
 	ld a,(PLAYER_GEMS)
 	add a,1
 	daa
-	cp 100
+	;cp $100
 	jr nz, proc_check_player_collect_skip_hi
 	ld hl, PLAYER_GEMS_HI
 	inc (hl)
@@ -1921,7 +1922,7 @@ ENDP
 
 
 
-org $8100
+org $8180
 sound1:
 db $00, $3, $6, $9, $c, $f, $11, $14
 db $16, $18, $1a, $1c, $1d, $1e, $1f, $1f
@@ -2059,7 +2060,9 @@ start_game:
 	inc hl
 	ld (hl),a
 	xor a
+	ld a,$02
 	ld (PLAYER_GEMS_HI),a
+	ld a,$99
 	ld (PLAYER_GEMS),a
 	inc hl
 	ld (hl),a
@@ -2071,6 +2074,9 @@ start_game:
 	ld (hl),STARTING_ROOM
 	ld a,CHAR_ZERO+3
 	ld (PLAYER_LIVES),a
+	
+	xor a
+	ld (PLAYER_SOUND_STATE),a
 	
 	ld hl,COLLECTED_GEMS
 	xor a
@@ -2085,6 +2091,16 @@ start_reset_loop:
 	
 	call proc_load_map
 loopyboy:
+	ld a,(PLAYER_SOUND_STATE)
+	xor %00010000
+	ld (PLAYER_SOUND_STATE),a
+	ld a,(PLAYER_JUMP_STATE)
+	cp $03
+	jr nc, skip_jump_sound
+	ld a, (PLAYER_SOUND_STATE)
+	out ($FE),a ; 11
+skip_jump_sound:
+	
 	;ei
 	;halt
 	;di
@@ -2123,11 +2139,46 @@ gameloopstall:
 	cp b
 	jr nz,gameloopstall
 
+
+gamebosscheck:
+	ld a,(CURRENT_ROOM_NUMBER)
+	cp 0
+	jr nz, gameendcheck
+	ld a,(PLAYER_GEMS)
+	cp 0
+	jr z, gameendcheck
+	jp ending
+	
+gameendcheck:
+	ld a,(PLAYER_GEMS_HI)
+	cp $3
+	jr nz, gameendfail
+	jr finalstageload
+gameendfail:
 	
 	ld a,(PLAYER_LIVES)
 	cp CHAR_ZERO-1
 	jr nz,loopyboy
+	
 	jp start
+		
+	
+finalstageload:
+	xor a
+	ld (PLAYER_GEMS_HI),a
+	ld (PLAYER_GEMS),a
+	ld (CURRENT_ROOM_NUMBER),a
+	
+	ld hl, PLAYER_POS
+	ld a, 10
+	ld (hl),a
+	ld a, 10
+	inc hl
+	ld (hl),a
+	call proc_load_map
+	
+	jp loopyboy
+	
 ret
 end start
 

@@ -434,3 +434,198 @@ db 65,68,70,70,48,6,6,6,6,6,6,6,6,70,70,70
 db 70,6,6,6,6,6,67,67,67,24,3,3,3,3,3,3
 db 70,70,70,6,6,6,6,6,6,6,6,6,6,112,112,112
 
+;SCREEN_ATTRIBUTE_START      equ $5800
+;SCREEN_ATTRIBUTE_SIZE       equ $0300
+
+BRIGHT_YELLOW_COL equ $06 | ($06<<3) | $40
+COLOR_ADD_VAL equ $01 | ($01<<3)
+
+FINAL_SHOW_COL:
+db BRIGHT_YELLOW_COL
+
+
+ending:
+	ei
+	ld a,%00010000
+	ex af,af'
+	ld d, 1
+ending_loop1:
+	ld e,d
+	ld a,(FINAL_SHOW_COL)
+	ld hl, $589A
+ending_loop2:
+	ld (hl),a
+	inc hl
+	ld (hl),a
+	ld bc,31
+	add hl,bc
+	ld bc, 31
+	dec e
+	halt
+	jr nz, ending_loop2
+	ld hl,FINAL_SHOW_COL
+	inc (hl)
+	ld a,5
+ending_loop3:
+	ex af,af'
+	xor %00010000
+	out ($FE),a ; 11
+	ex af,af'
+
+	halt
+	dec a
+	jr nz,ending_loop3
+	inc d
+	ld a,d
+	cp 15
+	jr nz,ending_loop1
+
+	call proc_clear_screen_pixels
+
+	ld a, WHITE_INK | BLACK_PAPER | BRIGHT
+    ld hl, SCREEN_ATTRIBUTE_START
+    ld de, SCREEN_ATTRIBUTE_START + 1
+    ld bc, SCREEN_ATTRIBUTE_SIZE - 1
+    ld (hl), a
+    ldir
+
+
+
+ending_sleep:
+	ld hl, VIC_STRING1
+	ld b, 16
+	ld c, 2
+	call proc_draw_string
+
+	ld hl, VIC_STRING2
+	ld b, 40
+	ld c, 2
+	call proc_draw_string
+	
+	ld hl, VIC_STRING3
+	ld b, 48
+	ld c, 2
+	call proc_draw_string
+
+	ld hl, VIC_STRING4
+	ld b, 56
+	ld c, 2
+	call proc_draw_string
+
+	ld hl, VIC_STRING5
+	ld b, 128
+	ld c, 2
+	call proc_draw_string
+
+
+ending_znigggg:
+
+	di
+	ld hl,VIC_SOUND
+	ld d,%00010000
+soundloopZ:	
+	ld b,(hl) ; 7
+	ld e,8 ; 7
+bitloopZ:
+	ld a,b ; 4
+	and d ; 4
+	out ($FE),a ; 11
+	ld c,$1C ; 7
+stallZ:
+	dec c ; 4
+	jr nz,stallZ ; 12/7
+	rrc b ; 8
+	dec e ; 4
+	jr z,bitloopendZ ; 12/7
+	ld c,$08 ; 7
+stall2Z:
+	dec c ; 4
+	jr z,bitloopZ ; 12/7 
+	jr stall2Z ; 12/7
+bitloopendZ:
+	inc hl ; 6
+	ld a,VIC_SOUND_END ; 7
+	cp l ; 4
+	jr nz,soundloopZ ; 12/7	
+	ld a,VIC_SOUND_END>>8 ; 7
+	cp h ; 4
+	jr nz,soundloopZ ; 12/7
+	ei
+
+	ld a,255
+ending_delay_loop:
+	halt
+	dec a
+	jr nz, ending_delay_loop
+
+	jr ending_znigggg
+
+VIC_STRING1:
+	db CHAR_C, CHAR_O, CHAR_N, CHAR_G, CHAR_R, CHAR_A, CHAR_T, CHAR_U
+	db CHAR_L, CHAR_A, CHAR_T, CHAR_I, CHAR_O, CHAR_N, CHAR_S, $01, 0
+VIC_STRING2:
+	db CHAR_Y, CHAR_O, CHAR_U, CHAR_SPACE, CHAR_H, CHAR_A, CHAR_V, CHAR_E, CHAR_SPACE
+	db CHAR_D, CHAR_E, CHAR_F, CHAR_E, CHAR_A, CHAR_T, CHAR_E, CHAR_D, CHAR_SPACE, CHAR_T, CHAR_H, CHAR_E, 0
+VIC_STRING3:
+	db CHAR_E, CHAR_V, CHAR_I, CHAR_L, CHAR_SPACE, CHAR_Z, CHAR_N, CHAR_I, CHAR_G, CHAR_G, CHAR_Y, CHAR_SPACE
+	db CHAR_A, CHAR_N, CHAR_D, CHAR_SPACE, CHAR_H, CHAR_A, CHAR_V, CHAR_E, 0
+VIC_STRING4:
+	db CHAR_B, CHAR_R, CHAR_O, CHAR_U, CHAR_G, CHAR_H, CHAR_T, CHAR_SPACE, CHAR_P, CHAR_E, CHAR_A, CHAR_C
+	db CHAR_E, CHAR_SPACE, CHAR_T, CHAR_O, CHAR_SPACE, CHAR_T, CHAR_H, CHAR_E, CHAR_SPACE
+	db CHAR_K, CHAR_I, CHAR_N, CHAR_G, CHAR_D, CHAR_O, CHAR_M, 0
+VIC_STRING5:
+	db CHAR_Y, CHAR_O, CHAR_U, CHAR_SPACE, CHAR_A, CHAR_R, CHAR_E, CHAR_SPACE, CHAR_A, CHAR_SPACE
+	db CHAR_H, CHAR_E, CHAR_R, CHAR_O, $01, 0
+
+
+VIC_SOUND:
+db 255, 255, 8, 241, 14, 255, 243, 14, 112, 143, 8, 255, 241, 143, 16, 225, 143
+db 247, 15, 112, 227, 15, 231, 15, 60, 240, 201, 241, 231, 143, 28, 31, 30, 120
+db 240, 216, 240, 241, 225, 195, 241, 225, 227, 131, 243, 227, 163, 137, 243, 241, 225
+db 201, 241, 241, 248, 108, 252, 252, 112, 59, 120, 58, 28, 143, 159, 135, 3, 247
+db 131, 225, 252, 249, 252, 100, 159, 159, 197, 206, 179, 209, 248, 95, 126, 54, 147
+db 239, 199, 96, 63, 252, 84, 34, 255, 63, 145, 204, 247, 98, 49, 159, 249, 152
+db 204, 206, 126, 38, 66, 239, 55, 3, 34, 191, 55, 3, 100, 207, 54, 14, 200
+db 29, 248, 24, 54, 108, 247, 193, 179, 108, 143, 248, 54, 108, 3, 239, 62, 137
+db 62, 129, 254, 30, 137, 62, 131, 238, 62, 3, 124, 23, 207, 124, 54, 193, 56
+db 159, 241, 241, 15, 0, 30, 247, 0, 112, 0, 8, 255, 247, 0, 12, 16, 14
+db 255, 16, 8, 48, 8, 255, 240, 0, 232, 0, 239, 245, 0, 13, 0, 14, 255
+db 16, 8, 96, 12, 255, 176, 8, 209, 0, 255, 246, 0, 15, 0, 143, 251, 0
+db 12, 0, 143, 255, 0, 14, 16, 15, 247, 16, 12, 16, 15, 255, 16, 102, 4
+db 231, 18, 49, 145, 14, 240, 207, 12, 48, 239, 48, 241, 199, 12, 247, 15, 24
+db 112, 207, 48, 241, 7, 12, 245, 143, 40, 48, 239, 40, 240, 129, 15, 176, 227
+db 6, 8, 241, 15, 16, 0, 243, 14, 112, 8, 245, 12, 242, 8, 229, 20, 242
+db 8, 229, 16, 243, 8, 245, 24, 243, 8, 255, 24, 231, 8, 255, 8, 243, 12
+db 247, 8, 243, 14, 243, 12, 242, 15, 242, 13, 240, 207, 176, 14, 32, 239, 32
+db 223, 8, 255, 0, 227, 12, 247, 0, 243, 14, 243, 8, 245, 14, 243, 8, 243
+db 12, 243, 0, 231, 8, 255, 16, 207, 48, 15, 241, 8, 247, 0, 255, 240, 0
+db 47, 255, 48, 0, 15, 243, 0, 207, 48, 133, 14, 112, 14, 247, 14, 113, 10
+db 81, 0, 64, 0, 0, 5, 240, 0, 0, 0, 32, 0, 16, 4, 16, 0, 0
+db 0, 0, 0, 0, 65, 0, 239, 0, 15, 32, 0, 16, 5, 176, 197, 178, 239
+db 255, 215, 54, 0, 127, 255, 243, 214, 113, 10, 255, 247, 0, 64, 12, 255, 251
+db 0, 0, 12, 255, 243, 0, 0, 12, 255, 114, 0, 0, 12, 255, 33, 0, 16
+db 79, 251, 64, 4, 16, 207, 210, 16, 0, 44, 255, 82, 0, 0, 143, 219, 0
+db 66, 10, 255, 48, 4, 16, 255, 112, 2, 80, 207, 241, 8, 32, 239, 241, 13
+db 41, 239, 176, 4, 24, 253, 32, 73, 79, 249, 8, 82, 239, 176, 2, 78, 123
+db 0, 0, 255, 80, 73, 239, 240, 8, 78, 243, 8, 12, 251, 0, 4, 255, 48
+db 0, 223, 112, 0, 207, 113, 0, 31, 241, 0, 78, 255, 0, 8, 255, 16, 0
+db 207, 112, 0, 15, 247, 0, 72, 255, 48, 0, 143, 242, 0, 12, 255, 48, 0
+db 143, 247, 0, 66, 255, 251, 0, 0, 175, 255, 48, 0, 143, 255, 240, 0, 12
+db 255, 253, 0, 8, 255, 255, 16, 8, 90, 255, 243, 144, 0, 10, 255, 255, 255
+db 255, 255, 255, 255, 255, 247, 16, 0, 0, 0, 167, 144, 255, 255, 255, 255, 241
+db 12, 255, 32, 0, 0, 0, 0, 0, 0, 0, 144, 0, 239, 255, 243, 239, 251
+db 223, 223, 255, 112, 1, 0, 0, 0, 18, 16, 131, 71, 241, 239, 247, 240, 47
+db 28, 239, 48, 243, 14, 255, 12, 240, 143, 112, 15, 16, 247, 8, 240, 143, 112
+db 215, 12, 113, 207, 28, 241, 15, 16, 247, 14, 112, 199, 12, 240, 207, 8, 240
+db 143, 8, 240, 143, 8, 240, 143, 8, 240, 231, 12, 112, 227, 14, 56, 241, 143
+db 12, 112, 195, 15, 16, 241, 199, 12, 112, 181, 11, 30, 112, 195, 143, 80, 224
+db 239, 56, 144, 255, 28, 0, 191, 80, 0, 191, 16, 0, 127, 16, 8, 243, 28
+db 56, 243, 12, 56, 243, 15, 24, 241, 143, 12, 240, 143, 12, 241, 207, 12, 241
+db 143, 8, 243, 14, 48, 239, 42, 240, 13, 242, 143, 8, 79, 84, 241, 11, 207
+db 40, 240, 193, 15, 48, 241, 199, 14, 247, 29, 56, 240, 134, 175, 8, 112, 241
+db 5, 15, 240, 227, 15, 28, 48, 239, 242, 231, 15, 28, 240, 225, 207, 14, 112
+db 240, 231, 14, 28, 255, 79, 28, 112, 227, 135, 12, 14, 243, 227, 143, 28, 240
+db 247, 128, 0, 14, 255
+
+VIC_SOUND_END:
+	db 0
