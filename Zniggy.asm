@@ -2060,9 +2060,9 @@ start_game:
 	inc hl
 	ld (hl),a
 	xor a
-	ld a,$02
+	ld a,$00
 	ld (PLAYER_GEMS_HI),a
-	ld a,$99
+	ld a,$00
 	ld (PLAYER_GEMS),a
 	inc hl
 	ld (hl),a
